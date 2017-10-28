@@ -180,6 +180,10 @@ def GetMissionInstance( mission_type, mission_seed, agent_type):
               <Placement x="0" y="216" z="90"/> <!-- will be overwritten by MazeDecorator -->
             </AgentStart>
             <AgentHandlers>
+              <VideoProducer want_depth="false">
+              <Width>640</Width>
+              <Height>480</Height>
+              </VideoProducer>
               <ObservationFromFullStats/>
               <ObservationFromRecentCommands/>
               <ObservationFromFullInventory/>
@@ -661,11 +665,13 @@ class AgentHelper:
 #-- The main entry point if you run the module as a script--#
 if __name__ == "__main__":
 
+    import os
+
     #-- Define default arguments, in case you run the module as a script --#
     DEFAULT_STUDENT_GUID = 'template'
     DEFAULT_AGENT_NAME   = 'Random' #HINT: Currently choose between {Random,Simple, Realistic}
-    DEFAULT_MALMO_PATH   = 'C:/Malmo-0.30.0-Windows-64bit/' # HINT: Change this to your own path
-    DEFAULT_AIMA_PATH    = 'C:/Users/Gabriella/Desktop/aima-python/'  # HINT: Change this to your own path, forward slash only, should be the 2.7 version from https://www.dropbox.com/s/vulnv2pkbv8q92u/aima-python_python_v27_r001.zip?dl=0) or for Python 3.x get it from https://github.com/aimacode/aima-python
+    DEFAULT_MALMO_PATH   = os.environ['MALMO_ROOT'] # HINT: Change this to your own path
+    DEFAULT_AIMA_PATH    = os.environ['AIMA_PATH']  # HINT: Change this to your own path, forward slash only, should be the 2.7 version from https://www.dropbox.com/s/vulnv2pkbv8q92u/aima-python_python_v27_r001.zip?dl=0) or for Python 3.x get it from https://github.com/aimacode/aima-python
     DEFAULT_MISSION_TYPE = 'small'  #HINT: Choose between {small,medium,large}
     DEFAULT_MISSION_SEED_MAX = 1    #HINT: How many different instances of the given mission (i.e. maze layout)
     DEFAULT_REPEATS      = 1        #HINT: How many repetitions of the same maze layout
@@ -673,7 +679,6 @@ if __name__ == "__main__":
     DEFAULT_SAVE_PATH    = './results/'
 
     #-- Import required modules --#
-    import os
     import sys
     import time
     import random
@@ -707,11 +712,11 @@ if __name__ == "__main__":
     print args
 
     #-- Display infor about the system --#
-    print("Working dir:"+os.getcwd())
-    print("Python version:"+sys.version)
-    print("malmopath:"+args.malmopath)
-    print("JAVA_HOME:'"+os.environ["JAVA_HOME"]+"'")
-    print("MALMO_XSD_PATH:'"+os.environ["MALMO_XSD_PATH"]+"'")
+    print("Working dir: "+os.getcwd())
+    print("Python version: "+sys.version)
+    print("malmopath: "+args.malmopath)
+    print("JAVA_HOME:' "+os.environ["JAVA_HOME"]+"'")
+    print("MALMO_XSD_PATH: '"+os.environ["MALMO_XSD_PATH"]+"'")
 
     #-- Add the Malmo path  --#
     print('Add Malmo Python API/lib to the Python environment ['+args.malmopath+'Python_Examples'+']')
