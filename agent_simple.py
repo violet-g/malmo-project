@@ -1,8 +1,12 @@
-#--------------------------------------------------------------------------------------
-#-- This class implements the Simple Agent --#
+from init_mission import init_mission
+import time
+
+from agent_helper import AgentHelper
+
+# This class implements the Simple Agent --#
 class AgentSimple:
 
-    def __init__(self,agent_host,agent_port, mission_type, mission_seed, solution_report, state_space):
+    def __init__(self, agent_host, agent_port, mission_type, mission_seed, solution_report, state_space):
         """ Constructor for the simple agent """
         self.AGENT_MOVEMENT_TYPE = 'Discrete' # HINT: You can change this if you want {Absolute, Discrete, Continuous}
         self.AGENT_NAME = 'Simple'

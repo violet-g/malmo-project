@@ -1,5 +1,4 @@
-#--------------------------------------------------------------------------------------
-#-- This class implements the Realistic Agent --#
+# This class implements the Realistic Agent --#
 class AgentRealistic:
 
     def __init__(self,agent_host,agent_port, mission_type, mission_seed, solution_report, state_space_graph):

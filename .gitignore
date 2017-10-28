@@ -3,3 +3,12 @@ ffmpeg.out
 tmp.tgz
 MalmoPython.lib
 MalmoPython.pyd
+main.pyc
+agent_helper.pyc
+agent_random.pyc
+agent_simple.pyc
+agent_realistic.pyc
+init_mission.pyc
+get_mission_instance.pyc
+state_space.pyc
+solution_report.pyc
