@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
     #-- Define default arguments, in case you run the module as a script --#
     DEFAULT_STUDENT_GUID = 'template'
-    DEFAULT_AGENT_NAME   = 'Random' #HINT: Currently choose between {Random,Simple, Realistic}
+    DEFAULT_AGENT_NAME   = 'Simple' #HINT: Currently choose between {Random,Simple, Realistic}
     DEFAULT_MALMO_PATH   = os.environ['MALMO_ROOT'] # HINT: Change this to your own path
     DEFAULT_AIMA_PATH    = os.environ['AIMA_PATH']  # HINT: Change this to your own path, forward slash only, should be the 2.7 version from https://www.dropbox.com/s/vulnv2pkbv8q92u/aima-python_python_v27_r001.zip?dl=0) or for Python 3.x get it from https://github.com/aimacode/aima-python
     DEFAULT_MISSION_TYPE = 'small'  #HINT: Choose between {small,medium,large}
@@ -146,3 +146,4 @@ if __name__ == "__main__":
             print("------------------------------------------------------------------------------\n")
 
     print("Done")
+    print(agent_host)

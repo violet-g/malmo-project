@@ -2,6 +2,7 @@ import time
 import json
 import numpy as np
 import math
+
 from state_space import StateSpace
 from init_mission import init_mission
 
@@ -136,7 +137,7 @@ class AgentHelper:
                     state_space_actions[state_id] = possible_states
 
                 #-- Kill the agent/mission --#
-                agent_host.sendCommand("tp " + str(0 ) + " " + str(0) + " " + str(0))
+                self.agent_host.sendCommand("tp " + str(0 ) + " " + str(0) + " " + str(0))
                 time.sleep(2)
 
                 #-- Save the info an instance of the StateSpace class --
