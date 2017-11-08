@@ -82,8 +82,8 @@ def GetMissionInstance( mission_type, mission_seed, agent_type):
             </AgentStart>
             <AgentHandlers>
               <VideoProducer want_depth="false">
-              <Width>1280</Width>
-              <Height>960</Height>
+              <Width>320</Width>
+              <Height>240</Height>
               </VideoProducer>
               <ObservationFromFullStats/>
               <ObservationFromRecentCommands/>

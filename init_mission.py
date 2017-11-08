@@ -18,24 +18,24 @@ def init_mission(agent_host, port=0, agent_type='Unknown',mission_type='Unknown'
     if agent_type.lower()=='random':
         n = msize
         my_mission.observeGrid(-n, -1, -n, n, -1, n, 'grid')
-        my_mission.requestVideoWithDepth(320,240)
+        my_mission.requestVideoWithDepth(640,480)
     elif agent_type.lower()=='simple':
         n = msize
         my_mission.observeGrid(-n, -1, -n, n, -1, n, 'grid');
-        my_mission.requestVideo(320,240)
+        my_mission.requestVideo(640,480)
     elif agent_type.lower()=='realistic':
         n = 1 # n=1 means local info only !
         my_mission.observeGrid(-n,-1,-n, n, -1, n, 'grid');
-        my_mission.requestVideoWithDepth(320,240)
+        my_mission.requestVideoWithDepth(640,480)
     elif agent_type.lower()=='helper':
         n = 100
         my_mission.observeGrid(-n,-1,-n, n, -1, n, 'grid');
-        my_mission.requestVideoWithDepth(320,240)
+        my_mission.requestVideoWithDepth(640,480)
     else:
         #-- Define a custom agent and add the sensors you need --#
         n = 100
         my_mission.observeGrid(-n, -1, -n, n, 1, n, 'grid');
-        my_mission.requestVideoWithDepth(320,240)
+        my_mission.requestVideoWithDepth(640,480)
 
     #-- Add support for the specific movement type requested (and given the constraints of the assignment) --#
     #-- See e.g. http://microsoft.github.io/malmo/0.17.0/Schemas/MissionHandlers.html   --#
