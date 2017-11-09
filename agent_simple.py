@@ -1,6 +1,7 @@
 import time
 import random
 import json
+import networkx as nx
 
 from agent_helper import AgentHelper
 from init_mission import init_mission
@@ -114,6 +115,72 @@ class AgentSimple:
         # INSERT: YOUR SOLUTION HERE (REMEMBER TO MANUALLY UPDATE THE solution_report DEPENDING ON YOU SOLUTION)
         state_space_locations = self.state_space.state_locations
         print(state_space_locations)
+
+		# initialise a graph
+        G = nx.Graph()
+
+		# use this while labeling nodes in the map
+        node_labels = dict()
+        node_colors = dict()
+        for n, p in state_space_locations.items():
+            G.add_node(n)            # add nodes from locations
+            node_labels[n] = n       # add nodes to node_labels
+            node_colors[n] = "white" # node_colors to color nodes while exploring the map
+
+		# we'll save the initial node colors to a dict for later use
+        initial_node_colors = dict(node_colors)
+    
+		# positions for node labels
+        node_label_pos = {k:[v[0],v[1]-0.25] for k,v in state_space_locations.items()} # spec the position of the labels relative to the nodes
+
+		# use this while labeling edges
+        edge_labels = dict()
+
+		# add edges between nodes in the map - UndirectedGraph defined in search.py
+        for node in state_space.nodes():
+            connections = state_space.get(node)
+            for connection in connections.keys():
+                distance = connections[connection]        
+                G.add_edge(node, connection) # add edges to the graph        
+                edge_labels[(node, connection)] = distance # add distances to edge_labels
+        
+        print("Done creating the graph object")
+
+        maze_problem = GraphProblem('S_0_0', 'S_7_6', state_space)
+        print("Initial state:"+maze_problem.initial) # change to get actual goal
+        print("Goal state:"+maze_problem.goal)
+
+        all_node_colors=[]
+        iterations, all_node_colors, node = astar_search(problem=maze_problem, h=None)
+
+		#-- Trace the solution --#
+        solution_path = [node]
+        cnode = node.parent
+        solution_path.append(cnode)
+        while cnode.state != "S_00_00":    
+            cnode = cnode.parent  
+            solution_path.append(cnode)
+
+        print("----------------------------------------")
+        print("Identified goal state:"+str(solution_path[0]))
+        print("----------------------------------------")
+        print("Solution trace:"+str(solution_path))
+        print("----------------------------------------")
+        print("Final solution path:")
+        show_map(final_path_colors(maze_problem, node.solution()))
+
+        do_full_visualization = False
+        if do_full_visualization:     
+			# WARNING the FULL visualisation might not work very well on some computers due to 
+			# the large graph and the many iterations required.The visualisaiton will 
+			# typically compute the solution and do the plotting at the end: often taking a long time ...
+			#
+            print("::: Full Visualisation ::::")
+            all_node_colors = []
+            display_visual(user_input = False, algorithm = astar_search, problem = maze_problem)
+
+        solution_path_local = deepcopy(solution_path)
+        print(solution_path_local)
         
         self.agent_host.setObservationsPolicy(MalmoPython.ObservationsPolicy.LATEST_OBSERVATION_ONLY)
         self.agent_host.setVideoPolicy(MalmoPython.VideoPolicy.LATEST_FRAME_ONLY)
