@@ -2,6 +2,7 @@ import time
 import random
 import json
 import networkx as nx
+import matplotlib.pyplot as plt
 
 from agent_helper import AgentHelper
 from init_mission import init_mission
@@ -103,6 +104,9 @@ class AgentSimple:
         return(iterations, all_node_colors, node)
 
     def run_agent(self):
+        # Need this to import GraphProblem from AIMA
+        from search import *
+
         """ Run the Simple agent and log the performance and resource use """
 
         #-- Load and init mission --#
@@ -112,9 +116,15 @@ class AgentSimple:
         time.sleep(1)
         self.solution_report.start()
 
-        # INSERT: YOUR SOLUTION HERE (REMEMBER TO MANUALLY UPDATE THE solution_report DEPENDING ON YOU SOLUTION)
-        state_space_locations = self.state_space.state_locations
-        print(state_space_locations)
+        # INSERT: YOUR SOLUTION HERE (REMEMBER TO MANUALLY UPDATE THE solution_report DEPENDING ON YOUR SOLUTION)
+        state_space = self.state_space
+        print(state_space.goal_id)
+        print(state_space.goal_loc)
+
+        maze_map = UndirectedGraph(state_space.state_actions)
+        maze_map_locations = state_space.state_locations
+        print(state_space.state_actions)
+        print(maze_map)
 
 		# initialise a graph
         G = nx.Graph()
@@ -122,7 +132,7 @@ class AgentSimple:
 		# use this while labeling nodes in the map
         node_labels = dict()
         node_colors = dict()
-        for n, p in state_space_locations.items():
+        for n, p in maze_map_locations.items():
             G.add_node(n)            # add nodes from locations
             node_labels[n] = n       # add nodes to node_labels
             node_colors[n] = "white" # node_colors to color nodes while exploring the map
@@ -130,15 +140,16 @@ class AgentSimple:
 		# we'll save the initial node colors to a dict for later use
         initial_node_colors = dict(node_colors)
     
+        
 		# positions for node labels
-        node_label_pos = {k:[v[0],v[1]-0.25] for k,v in state_space_locations.items()} # spec the position of the labels relative to the nodes
+        node_label_pos = {k:[v[0],v[1]-0.25] for k,v in maze_map_locations.items()} # spec the position of the labels relative to the nodes
 
 		# use this while labeling edges
         edge_labels = dict()
 
 		# add edges between nodes in the map - UndirectedGraph defined in search.py
-        for node in state_space.nodes():
-            connections = state_space.get(node)
+        for node in maze_map.nodes():
+            connections = maze_map.get(node)
             for connection in connections.keys():
                 distance = connections[connection]        
                 G.add_edge(node, connection) # add edges to the graph        
@@ -146,9 +157,11 @@ class AgentSimple:
         
         print("Done creating the graph object")
 
-        maze_problem = GraphProblem('S_0_0', 'S_7_6', state_space)
-        print("Initial state:"+maze_problem.initial) # change to get actual goal
-        print("Goal state:"+maze_problem.goal)
+    
+        # Create the maze_problem using AIMA 
+        maze_problem = GraphProblem(state_space.start_id, state_space.goal_id, maze_map)
+        print("Initial state:"+state_space.start_id) # change to get actual goal
+        print("Goal state:"+state_space.goal_id)
 
         all_node_colors=[]
         iterations, all_node_colors, node = astar_search(problem=maze_problem, h=None)
@@ -157,7 +170,7 @@ class AgentSimple:
         solution_path = [node]
         cnode = node.parent
         solution_path.append(cnode)
-        while cnode.state != "S_00_00":    
+        while cnode.state != "S_0_0":    
             cnode = cnode.parent  
             solution_path.append(cnode)
 
@@ -169,64 +182,36 @@ class AgentSimple:
         print("Final solution path:")
         show_map(final_path_colors(maze_problem, node.solution()))
 
-        do_full_visualization = False
-        if do_full_visualization:     
-			# WARNING the FULL visualisation might not work very well on some computers due to 
-			# the large graph and the many iterations required.The visualisaiton will 
-			# typically compute the solution and do the plotting at the end: often taking a long time ...
-			#
-            print("::: Full Visualisation ::::")
-            all_node_colors = []
-            display_visual(user_input = False, algorithm = astar_search, problem = maze_problem)
-
         solution_path_local = deepcopy(solution_path)
         print(solution_path_local)
-        
-        self.agent_host.setObservationsPolicy(MalmoPython.ObservationsPolicy.LATEST_OBSERVATION_ONLY)
-        self.agent_host.setVideoPolicy(MalmoPython.VideoPolicy.LATEST_FRAME_ONLY)
-        # Fix the randomness of the agent by seeding the random number generator
-        random.seed(1)
-        agentConfusionLevel = 0.1
-        continuousMovement = False
-        discreteAction = ["movenorth 1", "movesouth 1", "movewest 1", "moveeast 1"]
-
-        # Goal:
-        # goal_t: The goal is obtained when the cumulative reward reaches 1000 (checked internally in the mission definition)
-        # Let's predefine the cumulative reward - note the goal test is (effectively) checked against this value
-        reward_cumulative = 0.0
 
         state_t = self.agent_host.getWorldState()
 
         # Main loop:
         while state_t.is_mission_running:
 
-            # This is a senseless agent with random movement
-            try:
-                # Random hardwired moves for demo only
-                self.agent_host.sendCommand("pitch " + str(0)) # 0: look straigh ahead
-                self.agent_host.sendCommand("move "  + str(1)) # 1: means: move forward as fast as possible (in direction of sight)
-                self.agent_host.sendCommand("turn "  + str(agentConfusionLevel*(random.random()*2-1)) ) # start turing in a random direction, rather slowly
-            except RuntimeError as e:
-                print("Failed to send command:",e)
-                pass
-
-            # Wait 0.5 sec
-            time.sleep(0.5)
-
-            # Set the world state
-            state_t = self.agent_host.getWorldState()
-
-            # Stop movement
-            if state_t.is_mission_running:
-                # Enforce a simple discrete behavior by stopping any continuous movement in progress
-
-                if continuousMovement:
-                    self.agent_host.sendCommand("move "  + str(0))
-                    self.agent_host.sendCommand("pitch " + str(0))
-                    self.agent_host.sendCommand("turn "  + str(0))
+            target_node = solution_path_local.pop()
+            try:                
+                print("Action_t: Goto state " + target_node.state)
+                if target_node.state == state_space.goal_id:
+                    # Hack for AbsolutMovements: Do not take the full step to 1,9 ; then you will "die" we just need to be close enough (0.25)
+                    x_new = 1
+                    z_new = 8.75
                 else:
-                    actionIdx = random.randint(0, 2)
-                    self.agent_host.sendCommand(discreteAction[actionIdx])
+                    xz_new = maze_map.locations.get(target_node.state);
+                    x_new = xz_new[0] + 0.5 
+                    z_new = xz_new[1] + 0.5 
+                                    
+                agent_host.sendCommand("tp " + str(x_new ) + " " + str(217) + " " + str(z_new))                 
+            except RuntimeError as e:
+                print "Failed to send command:",e
+                pass    
+    
+            # Wait 0.5 sec 
+            time.sleep(0.5)
+        
+            # Get the world state
+            state_t = agent_host.getWorldState() # might need .self here 
 
 
             # Collect the number of rewards and add to reward_cumulative
@@ -262,8 +247,8 @@ class AgentSimple:
                 pitch = oracle.get(u'Pitch', 0)          #
 
             # Vision
-            if state_t.number_of_video_frames_since_last_state > 0: # Have any Vision percepts been registred ?
-                frame = state_t.video_frames[0]
+            #if state_t.number_of_video_frames_since_last_state > 0: # Have any Vision percepts been registred ?
+            #   frame = state_t.video_frames[0]
 
             #-- Print some of the state information --#
             print("Percept: video,observations,rewards received:",state_t.number_of_video_frames_since_last_state,state_t.number_of_observations_since_last_state,state_t.number_of_rewards_since_last_state)

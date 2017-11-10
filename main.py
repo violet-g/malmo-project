@@ -75,9 +75,9 @@ if __name__ == "__main__":
     import MalmoPython
 
     #-- OPTIONAL: Import the AIMA tools (for representing the state-space)--#
-    #print('Add AIMA lib to the Python environment ['+args.aimapath+']')
-    #sys.path.append(args.aimapath+'/')
-    #from search import *
+    print('Add AIMA lib to the Python environment ['+args.aimapath+']')
+    sys.path.append(args.aimapath+'/')
+    from search import *
 
     #-- Create the command line string for convenience --#
     cmd = 'python myagents.py -a ' + args.agentname + ' -s ' + str(args.missionseedmax) + ' -n ' + str(args.nrepeats) + ' -t ' + args.missiontype + ' -g ' + args.studentguid + ' -p ' + args.malmopath + ' -x ' + str(args.malmoport)

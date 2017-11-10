@@ -8,7 +8,7 @@ class StateSpace(object):
     """
 
     def __init__(self):
-        """ Constructor for the local state-space representation derived from the Orcale"""
+        """ Constructor for the local state-space representation derived from the Oracle"""
         self.state_locations = None;
         self.state_actions = None;
         self.start_id = None;  # The id assigned to the start state

@@ -2,6 +2,7 @@ import time
 import json
 import numpy as np
 import math
+import matplotlib.pyplot as plt
 
 from state_space import StateSpace
 from init_mission import init_mission
@@ -45,7 +46,7 @@ class AgentHelper:
         #-- Get the state of the world along with internal agent state...--#
         state_t = self.agent_host.getWorldState()
 
-        #-- Get a state-space model by observing the Orcale/GridObserver--#
+        #-- Get a state-space model by observing the Oracle/GridObserver--#
         if state_t.is_mission_running:
             #-- Make sure we look in the right direction when observing the surrounding (otherwise the coordinate system will rotated by the Yaw !) --#
             # Look East (towards +x (east) and +z (south) on the right, i.e. a std x,y coordinate system) yaw=-90
@@ -67,7 +68,7 @@ class AgentHelper:
                 yaw  = oracle_and_internal.get(u'Yaw', 0)
                 pitch = oracle_and_internal.get(u'Pitch', 0)
 
-                #-- Parste the JOSN string, Note there are better ways of doing this! --#
+                #-- Parste the JSON string, Note there are better ways of doing this! --#
                 full_state_map_raw = str(grid)
                 full_state_map_raw=full_state_map_raw.replace("[","")
                 full_state_map_raw=full_state_map_raw.replace("]","")
