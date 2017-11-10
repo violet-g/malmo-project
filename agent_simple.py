@@ -9,7 +9,7 @@ from init_mission import init_mission
 
 import MalmoPython
 
-# This class implements the Simple Agent --#
+# This class implements the Simple Agent
 class AgentSimple:
 
     def __init__(self, agent_host, agent_port, mission_type, mission_seed, solution_report, state_space):
@@ -21,90 +21,14 @@ class AgentSimple:
         self.agent_port = agent_port
         self.mission_seed = mission_seed
         self.mission_type = mission_type
-        self.state_space = state_space;
-        self.solution_report = solution_report;  # Python calls by reference !
+        self.state_space = state_space
+        self.solution_report = solution_report  # Python calls by reference !
         self.solution_report.setMissionType(self.mission_type)
         self.solution_report.setMissionSeed(self.mission_seed)
 
-    def best_first_graph_search(problem, f):
-        """Search the nodes with the lowest f scores first.
-        You specify the function f(node) that you want to minimize; for example,
-        if f is a heuristic estimate to the goal, then we have greedy best
-        first search; if f is node.depth then we have breadth-first search.
-        There is a subtlety: the line "f = memoize(f, 'f')" means that the f
-        values will be cached on the nodes as they are computed. So after doing
-        a best first search you can examine the f values of the path returned."""
-
-        # we use these two variables at the time of visualisations
-        iterations = 0
-        all_node_colors = []
-        node_colors = dict(initial_node_colors)
-
-        f = memoize(f, 'f')
-        node = Node(problem.initial)
-
-        node_colors[node.state] = "red"
-        iterations += 1
-        all_node_colors.append(dict(node_colors))
-
-        if problem.goal_test(node.state):
-            node_colors[node.state] = "green"
-            iterations += 1
-            all_node_colors.append(dict(node_colors))
-            return(iterations, all_node_colors, node)
-
-        frontier = PriorityQueue(min, f)
-        frontier.append(node)
-
-        node_colors[node.state] = "orange"
-        iterations += 1
-        all_node_colors.append(dict(node_colors))
-
-        explored = set()
-        while frontier:
-            node = frontier.pop()
-
-            node_colors[node.state] = "red"
-            iterations += 1
-            all_node_colors.append(dict(node_colors))
-
-            if problem.goal_test(node.state):
-                node_colors[node.state] = "green"
-                iterations += 1
-                all_node_colors.append(dict(node_colors))
-                return(iterations, all_node_colors, node)
-
-            explored.add(node.state)
-            for child in node.expand(problem):
-                if child.state not in explored and child not in frontier:
-                    frontier.append(child)
-                    node_colors[child.state] = "orange"
-                    iterations += 1
-                    all_node_colors.append(dict(node_colors))
-                elif child in frontier:
-                    incumbent = frontier[child]
-                    if f(child) < f(incumbent):
-                        del frontier[incumbent]
-                        frontier.append(child)
-                        node_colors[child.state] = "orange"
-                        iterations += 1
-                        all_node_colors.append(dict(node_colors))
-
-            node_colors[node.state] = "gray"
-            iterations += 1
-            all_node_colors.append(dict(node_colors))
-        return None
-
-    def astar_search(problem, h=None):
-        """A* search is best-first graph search with f(n) = g(n)+h(n).
-        You need to specify the h function when you call astar_search, or
-        else in your Problem subclass."""
-        h = memoize(h or problem.h, 'h')
-        iterations, all_node_colors, node = best_first_graph_search(problem, lambda n: n.path_cost + h(n))
-        return(iterations, all_node_colors, node)
-
     def run_agent(self):
         # Need this to import GraphProblem from AIMA
+        # Throws syntax warning but I can't think of a better way of importing it
         from search import *
 
         """ Run the Simple agent and log the performance and resource use """
@@ -118,13 +42,13 @@ class AgentSimple:
 
         # INSERT: YOUR SOLUTION HERE (REMEMBER TO MANUALLY UPDATE THE solution_report DEPENDING ON YOUR SOLUTION)
         state_space = self.state_space
-        print(state_space.goal_id)
-        print(state_space.goal_loc)
 
         maze_map = UndirectedGraph(state_space.state_actions)
-        maze_map_locations = state_space.state_locations
-        print(state_space.state_actions)
-        print(maze_map)
+        maze_map.locations = state_space.state_locations
+        maze_map_locations = maze_map.locations
+        
+        print maze_map.nodes()
+        print maze_map.locations
 
 		# initialise a graph
         G = nx.Graph()
@@ -153,15 +77,12 @@ class AgentSimple:
             for connection in connections.keys():
                 distance = connections[connection]        
                 G.add_edge(node, connection) # add edges to the graph        
-                edge_labels[(node, connection)] = distance # add distances to edge_labels
-        
-        print("Done creating the graph object")
-
+                edge_labels[(node, connection)] = distance # add distances to edge_labels   
     
-        # Create the maze_problem using AIMA 
+        # Create the maze_problem using AIMA
         maze_problem = GraphProblem(state_space.start_id, state_space.goal_id, maze_map)
-        print("Initial state:"+state_space.start_id) # change to get actual goal
-        print("Goal state:"+state_space.goal_id)
+        print("Initial state:"+maze_problem.initial) # change to get actual goal
+        print("Goal state:"+maze_problem.goal)
 
         all_node_colors=[]
         iterations, all_node_colors, node = astar_search(problem=maze_problem, h=None)
@@ -170,7 +91,7 @@ class AgentSimple:
         solution_path = [node]
         cnode = node.parent
         solution_path.append(cnode)
-        while cnode.state != "S_0_0":    
+        while cnode.state != maze_problem.initial:    
             cnode = cnode.parent  
             solution_path.append(cnode)
 
@@ -179,8 +100,6 @@ class AgentSimple:
         print("----------------------------------------")
         print("Solution trace:"+str(solution_path))
         print("----------------------------------------")
-        print("Final solution path:")
-        show_map(final_path_colors(maze_problem, node.solution()))
 
         solution_path_local = deepcopy(solution_path)
         print(solution_path_local)
@@ -198,7 +117,7 @@ class AgentSimple:
                     x_new = 1
                     z_new = 8.75
                 else:
-                    xz_new = maze_map.locations.get(target_node.state);
+                    xz_new = maze_map.locations.get(target_node.state)
                     x_new = xz_new[0] + 0.5 
                     z_new = xz_new[1] + 0.5 
                                     
@@ -235,7 +154,7 @@ class AgentSimple:
                 oracle = json.loads(msg)                 # Parse the Oracle JSON
 
                 # Oracle
-                grid = oracle.get(u'grid', 0)           #
+                grid = oracle.get(u'grid', 0)            
 
                 # GPS-like sensor
                 xpos = oracle.get(u'XPos', 0)            # Position in 2D plane, 1st axis
