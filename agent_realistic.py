@@ -54,13 +54,13 @@ class AgentRealistic:
         #   FOR DEVELOPMENT IT IS RECOMMENDED TO FIST USE A NOISE FREE VERSION, i.e.
         #       ExecuteActionForRealisticAgentWithNoisyTransitionModel(idx_requested_action, 0.0)
 		
-		state_space_locations = self.state_space.state_locations
+        state_space_locations = self.state_space.state_locations
         print(state_space_locations)
-+
+
         self.agent_host.setObservationsPolicy(MalmoPython.ObservationsPolicy.LATEST_OBSERVATION_ONLY)
         self.agent_host.setVideoPolicy(MalmoPython.VideoPolicy.LATEST_FRAME_ONLY)
 
-		continuousMovement = False
+        continuousMovement = False
 		
         # Goal:
         # goal_t: The goal is obtained when the cumulative reward reaches 1000 (checked internally in the mission definition)
