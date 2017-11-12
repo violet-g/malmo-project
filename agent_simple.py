@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 
 from agent_helper import AgentHelper
 from init_mission import init_mission
+from copy import deepcopy
 
 import MalmoPython
 
@@ -55,15 +56,9 @@ class AgentSimple:
 
 		# use this while labeling nodes in the map
         node_labels = dict()
-        node_colors = dict()
         for n, p in maze_map_locations.items():
             G.add_node(n)            # add nodes from locations
             node_labels[n] = n       # add nodes to node_labels
-            node_colors[n] = "white" # node_colors to color nodes while exploring the map
-
-		# we'll save the initial node colors to a dict for later use
-        initial_node_colors = dict(node_colors)
-    
         
 		# positions for node labels
         node_label_pos = {k:[v[0],v[1]-0.25] for k,v in maze_map_locations.items()} # spec the position of the labels relative to the nodes
@@ -84,8 +79,8 @@ class AgentSimple:
         print("Initial state:"+maze_problem.initial) # change to get actual goal
         print("Goal state:"+maze_problem.goal)
 
-        all_node_colors=[]
-        iterations, all_node_colors, node = astar_search(problem=maze_problem, h=None)
+        print maze_problem
+        node = astar_search(problem=maze_problem, h=None)
 
 		#-- Trace the solution --#
         solution_path = [node]
@@ -103,6 +98,8 @@ class AgentSimple:
 
         solution_path_local = deepcopy(solution_path)
         print(solution_path_local)
+
+        agent_host = self.agent_host
 
         state_t = self.agent_host.getWorldState()
 
