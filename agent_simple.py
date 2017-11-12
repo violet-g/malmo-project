@@ -110,10 +110,12 @@ class AgentSimple:
             try:                
                 print("Action_t: Goto state " + target_node.state)
                 if target_node.state == state_space.goal_id:
+                    print "also working"
                     # Hack for AbsolutMovements: Do not take the full step to 1,9 ; then you will "die" we just need to be close enough (0.25)
                     x_new = 1
                     z_new = 8.75
                 else:
+                    print "working"
                     xz_new = maze_map.locations.get(target_node.state)
                     x_new = xz_new[0] + 0.5 
                     z_new = xz_new[1] + 0.5 

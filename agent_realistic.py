@@ -4,7 +4,6 @@ import json
 
 from agent_helper import AgentHelper
 from init_mission import init_mission
-ExecuteActionForRealisticAgentWithNoisyTransitionModelfrom get_mission_instance import GetMissionInstance
 
 import MalmoPython
 
@@ -69,13 +68,13 @@ class AgentRealistic:
         reward_cumulative = 0.0
 
 		#get state_t 
-		state_t = self.agent_host.getWorldState()
+        state_t = self.agent_host.getWorldState()
 
 		#Main Loop
-		while state_t.is_mission_running:
+        while state_t.is_mission_running:
 
 			#Set the world state
-			state_t = self.agent_host.getWorldState()
+            state_t = self.agent_host.getWorldState()
 
 			# Stop movement
             if state_t.is_mission_running:
