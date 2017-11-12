@@ -7,8 +7,14 @@ import matplotlib.pyplot as plt
 from agent_helper import AgentHelper
 from init_mission import init_mission
 from copy import deepcopy
+import os
+import sys
 
 import MalmoPython
+
+AIMA_TOOLBOX_ROOT=os.environ['AIMA_PATH']
+sys.path.append(AIMA_TOOLBOX_ROOT)
+from search import *
 
 # This class implements the Simple Agent
 class AgentSimple:
@@ -28,10 +34,6 @@ class AgentSimple:
         self.solution_report.setMissionSeed(self.mission_seed)
 
     def run_agent(self):
-        # Need this to import GraphProblem from AIMA
-        # Throws syntax warning but I can't think of a better way of importing it
-        from search import *
-
         """ Run the Simple agent and log the performance and resource use """
 
         #-- Load and init mission --#
@@ -43,6 +45,7 @@ class AgentSimple:
 
         # INSERT: YOUR SOLUTION HERE (REMEMBER TO MANUALLY UPDATE THE solution_report DEPENDING ON YOUR SOLUTION)
         state_space = self.state_space
+        agent_host = self.agent_host
 
         maze_map = UndirectedGraph(state_space.state_actions)
         maze_map.locations = state_space.state_locations
@@ -56,7 +59,7 @@ class AgentSimple:
         for n, p in maze_map_locations.items():
             G.add_node(n)            # add nodes from locations
             node_labels[n] = n       # add nodes to node_labels
-        
+
 		# positions for node labels
         node_label_pos = {k:[v[0],v[1]-0.25] for k,v in maze_map_locations.items()} # spec the position of the labels relative to the nodes
 
@@ -67,10 +70,10 @@ class AgentSimple:
         for node in maze_map.nodes():
             connections = maze_map.get(node)
             for connection in connections.keys():
-                distance = connections[connection]        
-                G.add_edge(node, connection) # add edges to the graph        
-                edge_labels[(node, connection)] = distance # add distances to edge_labels   
-    
+                distance = connections[connection]
+                G.add_edge(node, connection) # add edges to the graph
+                edge_labels[(node, connection)] = distance # add distances to edge_labels
+
         # Create the maze_problem using AIMA
         maze_problem = GraphProblem(state_space.start_id, state_space.goal_id, maze_map)
         print("Initial state:"+maze_problem.initial)
@@ -82,8 +85,8 @@ class AgentSimple:
         solution_path = [node]
         cnode = node.parent
         solution_path.append(cnode)
-        while cnode.state != maze_problem.initial:    
-            cnode = cnode.parent  
+        while cnode.state != maze_problem.initial:
+            cnode = cnode.parent
             solution_path.append(cnode)
 
         print("----------------------------------------")
@@ -94,10 +97,10 @@ class AgentSimple:
 
         solution_path_local = deepcopy(solution_path)
 
-        state_t = self.agent_host.getWorldState()
+        state_t = agent_host.getWorldState()
 
-        self.agent_host.setObservationsPolicy(MalmoPython.ObservationsPolicy.LATEST_OBSERVATION_ONLY)
-        self.agent_host.setVideoPolicy(MalmoPython.VideoPolicy.LATEST_FRAME_ONLY)
+        agent_host.setObservationsPolicy(MalmoPython.ObservationsPolicy.LATEST_OBSERVATION_ONLY)
+        agent_host.setVideoPolicy(MalmoPython.VideoPolicy.LATEST_FRAME_ONLY)
 
         reward_cumulative = 0.0
 
@@ -105,7 +108,7 @@ class AgentSimple:
         while state_t.is_mission_running:
 
             target_node = solution_path_local.pop()
-            try:                
+            try:
                 print("Action_t: Goto state " + target_node.state)
                 if target_node.state == state_space.goal_id:
                     # Hack for AbsolutMovements: Do not take the full step to 1,9 ; then you will "die" we just need to be close enough (0.25)
@@ -113,21 +116,20 @@ class AgentSimple:
                     x_new = xz_new[0]
                     z_new = xz_new[1] - 0.25
                 else:
-                    xz_new = maze_map.locations.get(target_node.state)
                     x_new = xz_new[0] + 0.5 
                     z_new = xz_new[1] + 0.5 
                                   
-                self.agent_host.sendCommand("tp " + str(x_new) + " " + str(217) + " " + str(z_new))                 
+                agent_host.sendCommand("tp " + str(x_new) + " " + str(217) + " " + str(z_new))                 
             except RuntimeError as e:
                 print "Failed to send command:",e
-                pass    
-    
-            # Wait 0.5 sec 
-            time.sleep(0.5)
-        
-            # Get the world state
-            state_t = self.agent_host.getWorldState()
+                pass
 
+            # Wait 0.5 sec
+            time.sleep(0.5)
+
+            # Get the world state
+
+            state_t = agent_host.getWorldState() # might need .self here
 
             # Collect the number of rewards and add to reward_cumulative
             # Note: Since we only observe the sensors and environment every a number of rewards may have accumulated in the buffer
@@ -150,7 +152,7 @@ class AgentSimple:
                 oracle = json.loads(msg)                 # Parse the Oracle JSON
 
                 # Oracle
-                grid = oracle.get(u'grid', 0)            
+                grid = oracle.get(u'grid', 0)
 
                 # GPS-like sensor
                 xpos = oracle.get(u'XPos', 0)            # Position in 2D plane, 1st axis

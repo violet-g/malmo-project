@@ -1,3 +1,12 @@
+import time
+import random
+import json
+
+from agent_helper import AgentHelper
+from init_mission import init_mission
+
+import MalmoPython
+
 # This class implements the Realistic Agent --#
 class AgentRealistic:
 
@@ -44,5 +53,40 @@ class AgentRealistic:
         #       ExecuteActionForRealisticAgentWithNoisyTransitionModel(idx_requested_action, 0.05)
         #   FOR DEVELOPMENT IT IS RECOMMENDED TO FIST USE A NOISE FREE VERSION, i.e.
         #       ExecuteActionForRealisticAgentWithNoisyTransitionModel(idx_requested_action, 0.0)
+		
+        state_space_locations = self.state_space.state_locations
+        print(state_space_locations)
 
+        self.agent_host.setObservationsPolicy(MalmoPython.ObservationsPolicy.LATEST_OBSERVATION_ONLY)
+        self.agent_host.setVideoPolicy(MalmoPython.VideoPolicy.LATEST_FRAME_ONLY)
+
+        continuousMovement = False
+		
+        # Goal:
+        # goal_t: The goal is obtained when the cumulative reward reaches 1000 (checked internally in the mission definition)
+        # Let's predefine the cumulative reward - note the goal test is (effectively) checked against this value
+        reward_cumulative = 0.0
+
+		#get state_t 
+        state_t = self.agent_host.getWorldState()
+
+		#Main Loop
+        while state_t.is_mission_running:
+
+			#Set the world state
+            state_t = self.agent_host.getWorldState()
+
+			# Stop movement
+            if state_t.is_mission_running:
+                # Enforce a simple discrete behavior by stopping any continuous movement in progress
+
+                if continuousMovement:
+                    self.agent_host.sendCommand("move "  + str(0))
+                    self.agent_host.sendCommand("pitch " + str(0))
+                    self.agent_host.sendCommand("turn "  + str(0))
+                else:
+                    actionIdx = random.randint(0, 2)
+                    self.agent_host.sendCommand(discreteAction[actionIdx])
+
+			#
         return
