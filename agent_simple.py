@@ -47,9 +47,6 @@ class AgentSimple:
         maze_map = UndirectedGraph(state_space.state_actions)
         maze_map.locations = state_space.state_locations
         maze_map_locations = maze_map.locations
-        
-        print maze_map.nodes()
-        print maze_map.locations
 
 		# initialise a graph
         G = nx.Graph()
@@ -76,10 +73,9 @@ class AgentSimple:
     
         # Create the maze_problem using AIMA
         maze_problem = GraphProblem(state_space.start_id, state_space.goal_id, maze_map)
-        print("Initial state:"+maze_problem.initial) # change to get actual goal
+        print("Initial state:"+maze_problem.initial)
         print("Goal state:"+maze_problem.goal)
 
-        print maze_problem
         node = astar_search(problem=maze_problem, h=None)
 
 		#-- Trace the solution --#
@@ -97,11 +93,13 @@ class AgentSimple:
         print("----------------------------------------")
 
         solution_path_local = deepcopy(solution_path)
-        print(solution_path_local)
-
-        agent_host = self.agent_host
 
         state_t = self.agent_host.getWorldState()
+
+        self.agent_host.setObservationsPolicy(MalmoPython.ObservationsPolicy.LATEST_OBSERVATION_ONLY)
+        self.agent_host.setVideoPolicy(MalmoPython.VideoPolicy.LATEST_FRAME_ONLY)
+
+        reward_cumulative = 0.0
 
         # Main loop:
         while state_t.is_mission_running:
@@ -111,14 +109,15 @@ class AgentSimple:
                 print("Action_t: Goto state " + target_node.state)
                 if target_node.state == state_space.goal_id:
                     # Hack for AbsolutMovements: Do not take the full step to 1,9 ; then you will "die" we just need to be close enough (0.25)
-                    x_new = 1
-                    z_new = 8.75
+                    xz_new = maze_map.locations.get(target_node.state)
+                    x_new = xz_new[0]
+                    z_new = xz_new[1] - 0.25
                 else:
                     xz_new = maze_map.locations.get(target_node.state)
                     x_new = xz_new[0] + 0.5 
                     z_new = xz_new[1] + 0.5 
-                                    
-                agent_host.sendCommand("tp " + str(x_new ) + " " + str(217) + " " + str(z_new))                 
+                                  
+                self.agent_host.sendCommand("tp " + str(x_new) + " " + str(217) + " " + str(z_new))                 
             except RuntimeError as e:
                 print "Failed to send command:",e
                 pass    
@@ -127,7 +126,7 @@ class AgentSimple:
             time.sleep(0.5)
         
             # Get the world state
-            state_t = agent_host.getWorldState() # might need .self here 
+            state_t = self.agent_host.getWorldState()
 
 
             # Collect the number of rewards and add to reward_cumulative
@@ -163,8 +162,8 @@ class AgentSimple:
                 pitch = oracle.get(u'Pitch', 0)          #
 
             # Vision
-            #if state_t.number_of_video_frames_since_last_state > 0: # Have any Vision percepts been registred ?
-            #   frame = state_t.video_frames[0]
+            if state_t.number_of_video_frames_since_last_state > 0: # Have any Vision percepts been registred ?
+               frame = state_t.video_frames[0]
 
             #-- Print some of the state information --#
             print("Percept: video,observations,rewards received:",state_t.number_of_video_frames_since_last_state,state_t.number_of_observations_since_last_state,state_t.number_of_rewards_since_last_state)
