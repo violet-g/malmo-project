@@ -25,7 +25,7 @@ class AgentRealistic:
         self.solution_report.setMissionType(self.mission_type)
         self.solution_report.setMissionSeed(self.mission_seed)
         self.actions = []
-		self.q_table = {}
+        self.q_table = {}
 
     #----------------------------------------------------------------------------------------------------------------#
     def __ExecuteActionForRealisticAgentWithNoisyTransitionModel__(idx_requested_action, noise_level):
@@ -43,12 +43,12 @@ class AgentRealistic:
         
         obs_text = world_state.observations[-1].text
         obs = json.loads(obs_text) # most recent observation
-        self.logger.debug(obs)
+        print(obs)
         if not u'XPos' in obs or not u'ZPos' in obs:
-            self.logger.error("Incomplete observation received: %s" % obs_text)
+            print("Incomplete observation received: %s" % obs_text)
             return 0
         current_s = "%d:%d" % (int(obs[u'XPos']), int(obs[u'ZPos']))
-        self.logger.debug("State: %s (x = %.2f, z = %.2f)" % (current_s, float(obs[u'XPos']), float(obs[u'ZPos'])))
+        print("State: %s (x = %.2f, z = %.2f)" % (current_s, float(obs[u'XPos']), float(obs[u'ZPos'])))
         if not self.q_table.has_key(current_s):
             self.q_table[current_s] = ([0] * len(self.actions))
 
@@ -60,17 +60,17 @@ class AgentRealistic:
 
         # select the next action
         m = max(self.q_table[current_s])
-        self.logger.debug("Current values: %s" % ",".join(str(x) for x in self.q_table[current_s]))
+        print("Current values: %s" % ",".join(str(x) for x in self.q_table[current_s]))
         l = list()
         for x in range(0, len(self.actions)):
             if self.q_table[current_s][x] == m:
                 l.append(x)
         y = random.randint(0, len(l)-1)
         a = l[y]
-        self.logger.info("Taking q action: %s" % self.actions[a])
+        print("Taking q action: %s" % self.actions[a])
 
         # send the selected action
-        agent_host.ExecuteActionForRealisticAgentWithNoisyTransitionModel(self.actions[a], 0.0) # TODO add noise for submission
+        self.agent_host.ExecuteActionForRealisticAgentWithNoisyTransitionModel(self.actions[a], 0.0) # TODO add noise for submission
         self.prev_s = current_s
         self.prev_a = a
 
@@ -93,17 +93,17 @@ class AgentRealistic:
         #       ExecuteActionForRealisticAgentWithNoisyTransitionModel(idx_requested_action, 0.05)
         #   FOR DEVELOPMENT IT IS RECOMMENDED TO FIST USE A NOISE FREE VERSION, i.e.
         #       ExecuteActionForRealisticAgentWithNoisyTransitionModel(idx_requested_action, 0.0)
-		
+        
 
-		### INPUTS
+        ### INPUTS
         # Wait for a valid observation
-        state_space_locations = self.state_space.state_locations
-        print(state_space_locations)
+        # state_space_locations = self.state_space.state_locations
+        # print(state_space_locations)
 
         continuousMovement = False
-		
+        
         self.agent_host.setObservationsPolicy(MalmoPython.ObservationsPolicy.LATEST_OBSERVATION_ONLY)
-		#self.agent_host.setRewardsPolicy()
+        #self.agent_host.setRewardsPolicy()
         self.agent_host.setVideoPolicy(MalmoPython.VideoPolicy.LATEST_FRAME_ONLY)
 
         # Goal:
@@ -111,20 +111,20 @@ class AgentRealistic:
         # Let's predefine the cumulative reward - note the goal test is (effectively) checked against this value
         reward_cumulative = 0.0
         total_reward = 0
-		tol = 0
+        tol = 0
 
         self.prev_s = None
         self.prev_a = None
 
         # wait for a valid observation
-        world_state = agent_host.peekWorldState()
+        world_state = self.agent_host.peekWorldState()
         while world_state.is_mission_running and all(e.text=='{}' for e in world_state.observations):
-            world_state = agent_host.peekWorldState()
+            world_state = self.agent_host.peekWorldState()
         # wait for a frame to arrive after that
         num_frames_seen = world_state.number_of_video_frames_since_last_state
         while world_state.is_mission_running and world_state.number_of_video_frames_since_last_state == num_frames_seen:
-            world_state = agent_host.peekWorldState()
-        world_state = agent_host.getWorldState()
+            world_state = self.agent_host.peekWorldState()
+        world_state = self.agent_host.getWorldState()
         for err in world_state.errors:
             print err
 
@@ -136,22 +136,21 @@ class AgentRealistic:
         print 'Initial position:',prev_x,',',prev_z
             
         # take first action
-        total_reward += ExecuteActionForRealisticAgentWithNoisyTransitionModel(, 0.0)
-        total_reward += self.act(world_state,agent_host, reward_cumulative)
+        total_reward += self.act_agent(world_state, self.agent_host, reward_cumulative)
         
         require_move = True
         check_expected_position = True
 
-		#get state_t 
+        #get state_t 
         state_t = self.agent_host.getWorldState()
 
-		#Main Loop
+        #Main Loop
         while state_t.is_mission_running:
 
-			# wait for the position to have changed and a reward received
+            # wait for the position to have changed and a reward received
             print 'Waiting for data...',
             while True:
-                world_state = agent_host.peekWorldState()
+                world_state = self.agent_host.peekWorldState()
                 if not world_state.is_mission_running:
                     print 'mission ended.'
                     break
@@ -166,19 +165,19 @@ class AgentRealistic:
                     else:
                         print 
 
-			# wait for a frame to arrive after that
+            # wait for a frame to arrive after that
             num_frames_seen = world_state.number_of_video_frames_since_last_state
             while world_state.is_mission_running and world_state.number_of_video_frames_since_last_state == num_frames_seen:
-                world_state = agent_host.peekWorldState()
+                world_state = self.agent_host.peekWorldState()
                 
             num_frames_before_get = len(world_state.video_frames)
             
-            world_state = agent_host.getWorldState()
+            world_state = self.agent_host.getWorldState()
             for err in world_state.errors:
                 print err
             reward_cumulative = sum(r.getValue() for r in world_state.rewards)
 
-			if world_state.is_mission_running:
+            if world_state.is_mission_running:
                 assert len(world_state.video_frames) > 0, 'No video frames!?'
                 num_frames_after_get = len(world_state.video_frames)
                 assert num_frames_after_get >= num_frames_before_get, 'Fewer frames after getWorldState!?'
@@ -208,17 +207,17 @@ class AgentRealistic:
                 prev_x = curr_x
                 prev_z = curr_z
                 # act
-                total_reward += self.act(world_state, agent_host, reward_cumulative)
+                total_reward += self.act_agent(world_state, self.agent_host, reward_cumulative)
 
-		#-- Print some of the state information --#
+        #-- Print some of the state information --#
         print("Percept: video,observations,rewards received:",state_t.number_of_video_frames_since_last_state,state_t.number_of_observations_since_last_state,state_t.number_of_rewards_since_last_state)
         print("\tcoordinates (x,y,z):" + str(xpos) + " " + str(ypos) + " " + str(zpos))
-		return
+        return
 
 
 
-		# process final reward
-        self.logger.debug("Final reward: %d" % reward_cumulative)
+        # process final reward
+        print("Final reward: %d" % reward_cumulative)
         total_reward += reward_cumulative
 
         # update Q values
@@ -228,10 +227,10 @@ class AgentRealistic:
             
 
 
-			#Set the world state
+            #Set the world state
             state_t = self.agent_host.getWorldState()
 
-			# Stop movement
+            # Stop movement
             """if state_t.is_mission_running:
                 # Enforce a simple discrete behavior by stopping any continuous movement in progress
 
@@ -243,5 +242,5 @@ class AgentRealistic:
                     actionIdx = random.randint(0, 2)
                     self.agent_host.sendCommand(discreteAction[actionIdx])
 
-			#"""
+            #"""
         return
