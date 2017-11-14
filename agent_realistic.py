@@ -1,6 +1,7 @@
 import time
 import random
 import json
+import numpy as np
 
 from agent_helper import AgentHelper
 from init_mission import init_mission
@@ -47,6 +48,8 @@ class AgentRealistic:
         time.sleep(1)
         self.solution_report.start()
 
+        BLOCK_TYPES = {"stone":-1, "glowstone":0, "emerald_block":0, "stained_hardened_clay": -1}
+
         # INSERT YOUR SOLUTION HERE (REWARDS MUST BE UPDATED IN THE solution_report)
         #
         # NOTICE: YOUR FINAL AGENT MUST MAKE USE OF THE FOLLOWING NOISY TRANSISION MODEL
@@ -64,9 +67,7 @@ class AgentRealistic:
         # goal_t: The goal is obtained when the cumulative reward reaches 1000 (checked internally in the mission definition)
         # Let's predefine the cumulative reward - note the goal test is (effectively) checked against this value
         reward_cumulative = 0.0
-        total_reward = 0
-
-        """
+        
         state_t = self.agent_host.getWorldState()
 
         if state_t.number_of_observations_since_last_state > 0: # Has any Oracle-like and/or internal sensor observations come in?
@@ -75,6 +76,7 @@ class AgentRealistic:
 
             # Oracle
             grid = oracle.get(u'grid', 0)
+            print grid
 
             # GPS-like sensor
             xpos = oracle.get(u'XPos', 0)            # Position in 2D plane, 1st axis
@@ -82,20 +84,26 @@ class AgentRealistic:
             ypos = oracle.get(u'YPos', 0)
 
 
-
-        q_table = [][]
-        reward_matrix = [][]
+            
+        q_table = np.matrix([[0,0,0],[0,0,0],[0,0,0]])
+        reward_matrix = np.matrix([[0,0,0],[0,0,0],[0,0,0]])
         gamma = 0                                   # Greediness of the agent. Closer to 0 is greedier
-        """
+        i = 0
+
+        for block in grid:
+            reward_matrix.put(i, BLOCK_TYPES[str(block)])
+            i += 1
+
+
+        print reward_matrix
+
         #get state_t 
         state_t = self.agent_host.getWorldState()
 
-        print state_t.observations
-
-
-
 		#Main Loop
-        while state_t.is_mission_running:
+        while state_t.is_mission_running: 
+
+            # maybe TODO: do while the goal state hasn't been reached   
 
 			#Set the world state
             state_t = self.agent_host.getWorldState()
