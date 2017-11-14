@@ -21,7 +21,7 @@ class AgentSimple:
 
     def __init__(self, agent_host, agent_port, mission_type, mission_seed, solution_report, state_space):
         """ Constructor for the simple agent """
-        self.AGENT_MOVEMENT_TYPE = 'Discrete' # HINT: You can change this if you want {Absolute, Discrete, Continuous}
+        self.AGENT_MOVEMENT_TYPE = 'Absolute' # HINT: You can change this if you want {Absolute, Discrete, Continuous}
         self.AGENT_NAME = 'Simple'
 
         self.agent_host = agent_host
@@ -42,9 +42,6 @@ class AgentSimple:
         self.solution_report.setMissionXML(mission_xml)
         time.sleep(1)
         self.solution_report.start()
-
-        # Agent allowed movements
-        self.AGENT_ALLOWED_ACTIONS = ["movenorth 1", "movesouth 1", "movewest 1", "moveeast 1"]
 
         # INSERT: YOUR SOLUTION HERE (REMEMBER TO MANUALLY UPDATE THE solution_report DEPENDING ON YOUR SOLUTION)
         state_space = self.state_space
@@ -106,11 +103,6 @@ class AgentSimple:
         agent_host.setVideoPolicy(MalmoPython.VideoPolicy.LATEST_FRAME_ONLY)
 
         reward_cumulative = 0.0
-        x_old = 8.5
-        z_old = 0.5
-        x_new = 0
-        z_new = 0
-        command = ""
 
         # Main loop:
         while state_t.is_mission_running:
@@ -124,24 +116,12 @@ class AgentSimple:
                     x_new = xz_new[0]
                     z_new = xz_new[1] - 0.25
                 else:          
-                    x_old = x_new
-                    z_old = z_new
 
                     xz_new = maze_map.locations.get(target_node.state)
                     x_new = xz_new[0] + 0.5
                     z_new = xz_new[1] + 0.5
 
-                    if x_old < x_new:
-                        command = "moveeast 1"
-                    elif x_old > x_new:
-                        command = "movewest 1"
-                    elif z_old > z_new:
-                        command = "movesouth 1"
-                    elif z_old < z_new:
-                        command = "movenorth 1"
-
-                print x_old, z_old, x_new, z_new, command    
-                agent_host.sendCommand(command)                 
+                agent_host.sendCommand("tp " + str(x_new) + " " + str(217) + " " + str(z_new))
             except RuntimeError as e:
                 print "Failed to send command:",e
                 pass
