@@ -12,7 +12,7 @@ class AgentRealistic:
 
     def __init__(self,agent_host,agent_port, mission_type, mission_seed, solution_report, state_space_graph):
         """ Constructor for the realistic agent """
-        self.AGENT_MOVEMENT_TYPE = 'Discrete' # HINT: You can change this if you want {Absolute, Discrete, Continuous}
+        self.AGENT_MOVEMENT_TYPE = 'Absolute' # HINT: You can change this if you want {Absolute, Discrete, Continuous}
         self.AGENT_NAME = 'Realistic'
         self.AGENT_ALLOWED_ACTIONS = ["movenorth 1", "movesouth 1", "movewest 1", "moveeast 1"]
 
@@ -25,6 +25,7 @@ class AgentRealistic:
         self.solution_report.setMissionType(self.mission_type)
         self.solution_report.setMissionSeed(self.mission_seed)
         self.actions = []
+		self.q_table = {}
 
     #----------------------------------------------------------------------------------------------------------------#
     def __ExecuteActionForRealisticAgentWithNoisyTransitionModel__(idx_requested_action, noise_level):
@@ -93,6 +94,8 @@ class AgentRealistic:
         #   FOR DEVELOPMENT IT IS RECOMMENDED TO FIST USE A NOISE FREE VERSION, i.e.
         #       ExecuteActionForRealisticAgentWithNoisyTransitionModel(idx_requested_action, 0.0)
 		
+
+		### INPUTS
         # Wait for a valid observation
         state_space_locations = self.state_space.state_locations
         print(state_space_locations)
@@ -100,6 +103,7 @@ class AgentRealistic:
         continuousMovement = False
 		
         self.agent_host.setObservationsPolicy(MalmoPython.ObservationsPolicy.LATEST_OBSERVATION_ONLY)
+		#self.agent_host.setRewardsPolicy()
         self.agent_host.setVideoPolicy(MalmoPython.VideoPolicy.LATEST_FRAME_ONLY)
 
         # Goal:
@@ -107,6 +111,7 @@ class AgentRealistic:
         # Let's predefine the cumulative reward - note the goal test is (effectively) checked against this value
         reward_cumulative = 0.0
         total_reward = 0
+		tol = 0
 
         self.prev_s = None
         self.prev_a = None
@@ -143,19 +148,91 @@ class AgentRealistic:
 		#Main Loop
         while state_t.is_mission_running:
 
-        ### ADD STUFF IN MAIN LOOP
+			# wait for the position to have changed and a reward received
+            print 'Waiting for data...',
+            while True:
+                world_state = agent_host.peekWorldState()
+                if not world_state.is_mission_running:
+                    print 'mission ended.'
+                    break
+                if len(world_state.rewards) > 0 and not all(e.text=='{}' for e in world_state.observations):
+                    obs = json.loads( world_state.observations[-1].text )
+                    curr_x = obs[u'XPos']
+                    curr_z = obs[u'ZPos']
+                    if require_move:
+                        if math.hypot( curr_x - prev_x, curr_z - prev_z ) > tol:
+                            print 'received.'
+                            break
+                    else:
+                        print 
+
+			# wait for a frame to arrive after that
+            num_frames_seen = world_state.number_of_video_frames_since_last_state
+            while world_state.is_mission_running and world_state.number_of_video_frames_since_last_state == num_frames_seen:
+                world_state = agent_host.peekWorldState()
+                
+            num_frames_before_get = len(world_state.video_frames)
+            
+            world_state = agent_host.getWorldState()
+            for err in world_state.errors:
+                print err
+            reward_cumulative = sum(r.getValue() for r in world_state.rewards)
+
+			if world_state.is_mission_running:
+                assert len(world_state.video_frames) > 0, 'No video frames!?'
+                num_frames_after_get = len(world_state.video_frames)
+                assert num_frames_after_get >= num_frames_before_get, 'Fewer frames after getWorldState!?'
+                frame = world_state.video_frames[-1]
+                obs = json.loads( world_state.observations[-1].text )
+                curr_x = obs[u'XPos']
+                curr_z = obs[u'ZPos']
+                print 'New position from observation:',curr_x,',',curr_z,'after action:',self.actions[self.prev_a], #NSWE
+                if check_expected_position:
+                    expected_x = prev_x + [0,0,-1,1][self.prev_a]
+                    expected_z = prev_z + [-1,1,0,0][self.prev_a]
+                    if math.hypot( curr_x - expected_x, curr_z - expected_z ) > tol:
+                        print ' - ERROR DETECTED! Expected:',expected_x,',',expected_z
+                        raw_input("Press Enter to continue...")
+                    else:
+                        print 'as expected.'
+                    curr_x_from_render = frame.xPos
+                    curr_z_from_render = frame.zPos
+                    print 'New position from render:',curr_x_from_render,',',curr_z_from_render,'after action:',self.actions[self.prev_a], #NSWE
+                    if math.hypot( curr_x_from_render - expected_x, curr_z_from_render - expected_z ) > tol:
+                        print ' - ERROR DETECTED! Expected:',expected_x,',',expected_z
+                        raw_input("Press Enter to continue...")
+                    else:
+                        print 'as expected.'
+                else:
+                    print
+                prev_x = curr_x
+                prev_z = curr_z
+                # act
+                total_reward += self.act(world_state, agent_host, reward_cumulative)
+
+		#-- Print some of the state information --#
+        print("Percept: video,observations,rewards received:",state_t.number_of_video_frames_since_last_state,state_t.number_of_observations_since_last_state,state_t.number_of_rewards_since_last_state)
+        print("\tcoordinates (x,y,z):" + str(xpos) + " " + str(ypos) + " " + str(zpos))
+		return
+
+
+
+		# process final reward
+        self.logger.debug("Final reward: %d" % reward_cumulative)
+        total_reward += reward_cumulative
+
+        # update Q values
+        if self.training and self.prev_s is not None and self.prev_a is not None:
+            old_q = self.q_table[self.prev_s][self.prev_a]
+            self.q_table[self.prev_s][self.prev_a] = old_q + self.alpha * ( reward_cumulative - old_q )
+            
+
 
 			#Set the world state
             state_t = self.agent_host.getWorldState()
 
-            # Look at current frame
-            if state_t.number_of_video_frames_since_last_state > 0: # Have any Vision percepts been registred ?
-               frame = state_t.video_frames[0]
-
-
-
 			# Stop movement
-            if state_t.is_mission_running:
+            """if state_t.is_mission_running:
                 # Enforce a simple discrete behavior by stopping any continuous movement in progress
 
                 if continuousMovement:
@@ -166,5 +243,5 @@ class AgentRealistic:
                     actionIdx = random.randint(0, 2)
                     self.agent_host.sendCommand(discreteAction[actionIdx])
 
-			#
+			#"""
         return
