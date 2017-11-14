@@ -130,7 +130,6 @@ class AgentSimple:
             time.sleep(0.5)
 
             # Get the world state
-
             state_t = agent_host.getWorldState() # might need .self here
 
             # Collect the number of rewards and add to reward_cumulative
