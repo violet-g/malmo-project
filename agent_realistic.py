@@ -82,7 +82,6 @@ class AgentRealistic:
             xpos = oracle.get(u'XPos', 0)            # Position in 2D plane, 1st axis
             zpos = oracle.get(u'ZPos', 0)            # Position in 2D plane, 2nd axis (yes Z!)
             ypos = oracle.get(u'YPos', 0)
-
             
         q_table = np.matrix([[0]*3,[0]*3,[0]*3])
         reward_matrix = np.matrix([[0]*3,[0]*3,[0]*3])

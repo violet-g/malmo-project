@@ -3,6 +3,7 @@ import random
 import json
 import networkx as nx
 import matplotlib.pyplot as plt
+import datetime
 
 from agent_helper import AgentHelper
 from init_mission import init_mission
@@ -122,6 +123,8 @@ class AgentSimple:
                     z_new = xz_new[1] + 0.5
 
                 agent_host.sendCommand("tp " + str(x_new) + " " + str(217) + " " + str(z_new))
+                self.solution_report.addAction()
+                
             except RuntimeError as e:
                 print "Failed to send command:",e
                 pass
@@ -173,6 +176,11 @@ class AgentSimple:
             print("\tcoordinates (x,y,z,yaw,pitch):" + str(xpos) + " " + str(ypos) + " " + str(zpos)+ " " + str(yaw) + " " + str(pitch))
 
         # --------------------------------------------------------------------------------------------
+
+        #Update solution_report
+        self.solution_report.addReward(reward_cumulative, datetime.datetime.now )
+        self.solution_report.checkGoal()
+
         # Summary
         print("Summary:")
         print("Mission has ended ... either because time has passed (-1000 reward) or goal reached (1000 reward) or early stop (0 reward)")
