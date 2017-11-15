@@ -5,3 +5,4 @@ tmp.tgz
 *.pyd
 *.pyc
 .vs
+results/

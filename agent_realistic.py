@@ -131,7 +131,7 @@ class AgentRealistic:
         print 'Initial position:',prev_x,',',prev_z
             
         # take first action
-        total_reward += ExecuteActionForRealisticAgentWithNoisyTransitionModel(, 0.0)
+        #total_reward += ExecuteActionForRealisticAgentWithNoisyTransitionModel(, 0.0)
         total_reward += self.act(world_state,agent_host, reward_cumulative)
         
         require_move = True
