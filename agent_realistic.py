@@ -58,7 +58,7 @@ class AgentRealistic:
         #       ExecuteActionForRealisticAgentWithNoisyTransitionModel(idx_requested_action, 0.0)
 
         continuousMovement = False
-		
+        
         self.agent_host.setObservationsPolicy(MalmoPython.ObservationsPolicy.LATEST_OBSERVATION_ONLY)
         self.agent_host.setRewardsPolicy(MalmoPython.RewardsPolicy.SUM_REWARDS)
         self.agent_host.setVideoPolicy(MalmoPython.VideoPolicy.LATEST_FRAME_ONLY)
@@ -83,38 +83,67 @@ class AgentRealistic:
             zpos = oracle.get(u'ZPos', 0)            # Position in 2D plane, 2nd axis (yes Z!)
             ypos = oracle.get(u'YPos', 0)
 
-
             
-        q_table = np.matrix([[0,0,0],[0,0,0],[0,0,0]])
-        reward_matrix = np.matrix([[0,0,0],[0,0,0],[0,0,0]])
+        q_table = np.matrix([[0]*3,[0]*3,[0]*3])
+        reward_matrix = np.matrix([[0]*3,[0]*3,[0]*3])
         gamma = 0                                   # Greediness of the agent. Closer to 0 is greedier
-        i = 0
+        prev_s = None
+        prev_a = None
 
+        i = 0
         for block in grid:
             reward_matrix.put(i, BLOCK_TYPES[str(block)])
             i += 1
 
-
         print reward_matrix
 
-        #get state_t 
-        state_t = self.agent_host.getWorldState()
+        #Main Loop
+        while state_t.is_mission_running:
 
-		#Main Loop
-        while state_t.is_mission_running: 
+            #Set the world state
+            state_t = self.agent_host.getWorldState()   # difference getWorldState?
 
-            # maybe TODO: do while the goal state hasn't been reached   
+            if (prev_s is not None):
+                # Look at current frame
+                if state_t.number_of_video_frames_since_last_state > 0: # Have any Vision percepts been registred ?
+                    frame = state_t.video_frames[0]
+                    msg = state_t.observations[-1].text      # Get the detailed for the last observed state
+                    oracle = json.loads(msg)                 # Parse the Oracle JSON
+                    grid = oracle.get(u'grid', 0)
+                    xpos = oracle.get(u'XPos', 0)            # Position in 2D plane, 1st axis
+                    zpos = oracle.get(u'ZPos', 0)            # Position in 2D plane, 2nd axis (yes Z!)
+                    ypos = oracle.get(u'YPos', 0)
 
-			#Set the world state
-            state_t = self.agent_host.getWorldState()
-
-            # Look at current frame
-            if state_t.number_of_video_frames_since_last_state > 0: # Have any Vision percepts been registred ?
-               frame = state_t.video_frames[0]
+            
+            prev_s = state_t
+            prev_a =  
 
 
+            allowed_actions = []
+            for i in xrange(1,8,2):
+                if elem != -1 and i == 1:
+                    allowed_actions += "movesouth 1"
+                elif elem != -1 and i == 3:
+                    allowed_actions += "moveeast 1"
+                elif elem != -1 and i == 5:
+                    allowed_actions += "movewest 1"
+                elif elem != -1 and i == 7:
+                    allowed_actions += "movesouth 1"
+                   
+            print allowed_actions
+            ExecuteActionForRealisticAgentWithNoisyTransitionModel(random.choice(allowed_actions)
+            
 
-			# Stop movement
+            # Update q_table
+            x_curr = xpos
+            z_curr = zpos
+
+            x_old = x_curr
+            z_old = z_curr
+
+
+
+            # Stop movement
             if state_t.is_mission_running:
                 # Enforce a simple discrete behavior by stopping any continuous movement in progress
 
@@ -126,5 +155,5 @@ class AgentRealistic:
                     actionIdx = random.randint(0, 2)
                     self.agent_host.sendCommand(discreteAction[actionIdx])
 
-			
+            
         return
