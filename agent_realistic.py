@@ -26,6 +26,7 @@ class AgentRealistic:
         self.solution_report.setMissionSeed(self.mission_seed)
         self.actions = []
         self.q_table = {}
+        self.training = True
 
     #----------------------------------------------------------------------------------------------------------------#
     def __ExecuteActionForRealisticAgentWithNoisyTransitionModel__(idx_requested_action, noise_level):
@@ -103,7 +104,7 @@ class AgentRealistic:
         continuousMovement = False
         
         self.agent_host.setObservationsPolicy(MalmoPython.ObservationsPolicy.LATEST_OBSERVATION_ONLY)
-        #self.agent_host.setRewardsPolicy()
+        #self.agent_host.setRewardsPolicy() Do we have to set the reward policy?
         self.agent_host.setVideoPolicy(MalmoPython.VideoPolicy.LATEST_FRAME_ONLY)
 
         # Goal:
@@ -231,7 +232,7 @@ class AgentRealistic:
             state_t = self.agent_host.getWorldState()
 
             # Stop movement
-            """if state_t.is_mission_running:
+            if state_t.is_mission_running:
                 # Enforce a simple discrete behavior by stopping any continuous movement in progress
 
                 if continuousMovement:
@@ -242,5 +243,4 @@ class AgentRealistic:
                     actionIdx = random.randint(0, 2)
                     self.agent_host.sendCommand(discreteAction[actionIdx])
 
-            #"""
         return
