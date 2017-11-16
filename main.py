@@ -56,7 +56,7 @@ if __name__ == "__main__":
     parser.add_argument("-o" , "--aimapath"         , type=str, help="path for the aima toolbox (optional)"   , default=DEFAULT_AIMA_PATH)
     parser.add_argument("-r" , "--resultpath"       , type=str, help="the path where the results are saved" , default=DEFAULT_SAVE_PATH)
     args = parser.parse_args()
-    print args
+    print (args)
 
     #-- Display infor about the system --#
     print("Working dir: "+os.getcwd())
@@ -101,6 +101,9 @@ if __name__ == "__main__":
         else:
             helper_agent = None
 
+        # Initialise q_table
+        q_table = np.matrix([0] * 4 for i in range(10))
+
         #-- Repeat the same instance (size and seed) multiple times --#
         for i_rep in range(0,args.nrepeats):
             print('Setup the performance log...')
@@ -117,7 +120,14 @@ if __name__ == "__main__":
 
             print('Run the agent, time it and log the performance...')
             solution_report.start() # start the timer (may be overwritten in the agent to provide a fair comparison)
-            agent_to_be_evaluated.run_agent()
+
+            # If the agent is realistic pass the q_table
+            if agent.name == "Realistic":
+                print(q_table)
+                agent_to_be_evaluated.run_agent(q_table)
+            else:
+                agent_to_be_evaluated.run_agent()
+
             solution_report.stop() # stop the timer
 
             print("\n---------------------------------------------")

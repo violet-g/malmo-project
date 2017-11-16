@@ -15,7 +15,7 @@ class AgentRealistic:
         """ Constructor for the realistic agent """
         self.AGENT_MOVEMENT_TYPE = 'Discrete' # HINT: You can change this if you want {Absolute, Discrete, Continuous}
         self.AGENT_NAME = 'Realistic'
-        self.AGENT_ALLOWED_ACTIONS = ["movenorth 1", "movesouth 1", "movewest 1", "moveeast 1"]
+        self.AGENT_ALLOWED_ACTIONS = ["movenorth 1", "moveeast 1", "movewest 1",  "movesouth 1"]
 
         self.agent_host = agent_host
         self.agent_port = agent_port
@@ -27,18 +27,18 @@ class AgentRealistic:
         self.solution_report.setMissionSeed(self.mission_seed)
 
     #----------------------------------------------------------------------------------------------------------------#
-    def __ExecuteActionForRealisticAgentWithNoisyTransitionModel__(idx_requested_action, noise_level):
+    def __ExecuteActionForRealisticAgentWithNoisyTransitionModel__(self, idx_requested_action, noise_level):
         """ Creates a well-defined transition model with a certain noise level """
         n = len(self.AGENT_ALLOWED_ACTIONS)
         pp = noise_level/(n-1) * np.ones((n,1))
-        pp[idx_request_action] = 1.0 - noise_level
+        pp[idx_requested_action] = 1.0 - noise_level
         idx_actual = np.random.choice(n, 1, p=pp.flatten()) # sample from the distribution of actions
         actual_action = self.AGENT_ALLOWED_ACTIONS[int(idx_actual)]
         self.agent_host.sendCommand(actual_action)
         return actual_action
 
     #----------------------------------------------------------------------------------------------------------------#
-    def run_agent(self):
+    def run_agent(self, q_table):
         """ Run the Realistic agent and log the performance and resource use """
 
         #-- Load and init mission --#
@@ -48,7 +48,7 @@ class AgentRealistic:
         time.sleep(1)
         self.solution_report.start()
 
-        BLOCK_TYPES = {"stone":-1, "glowstone":0, "emerald_block":0, "stained_hardened_clay": -1}
+        BLOCK_TYPES = {"stone":-1000, "glowstone":0, "emerald_block":0, "stained_hardened_clay": -1000}
 
         # INSERT YOUR SOLUTION HERE (REWARDS MUST BE UPDATED IN THE solution_report)
         #
@@ -76,25 +76,29 @@ class AgentRealistic:
 
             # Oracle
             grid = oracle.get(u'grid', 0)
-            print grid
+            print (grid)
 
             # GPS-like sensor
             xpos = oracle.get(u'XPos', 0)            # Position in 2D plane, 1st axis
             zpos = oracle.get(u'ZPos', 0)            # Position in 2D plane, 2nd axis (yes Z!)
             ypos = oracle.get(u'YPos', 0)
-            
-        q_table = np.matrix([[0]*3,[0]*3,[0]*3])
+
         reward_matrix = np.matrix([[0]*3,[0]*3,[0]*3])
-        gamma = 0                                   # Greediness of the agent. Closer to 0 is greedier
+        gamma = 1                                   # Greediness of the agent. Closer to 0 is greedier
+        alpha = 1                                   # What is alpha?
         prev_s = None
         prev_a = None
+        prev_r = 0
+        print (xpos, zpos)
+        x_curr = xpos-0.5
+        z_curr = zpos-0.5
+        curr_s = (zpos*10)+xpos+1
+        curr_a = None
 
-        i = 0
         for block in grid:
-            reward_matrix.put(i, BLOCK_TYPES[str(block)])
-            i += 1
+            reward_matrix.put(grid.index(block), BLOCK_TYPES[str(block)])
 
-        print reward_matrix
+        print (reward_matrix)
 
         #Main Loop
         while state_t.is_mission_running:
@@ -102,43 +106,53 @@ class AgentRealistic:
             #Set the world state
             state_t = self.agent_host.getWorldState()   # difference getWorldState?
 
+            # Add reward to queue table if there has been a previous state
             if (prev_s is not None):
                 # Look at current frame
                 if state_t.number_of_video_frames_since_last_state > 0: # Have any Vision percepts been registred ?
-                    frame = state_t.video_frames[0]
+                    # frame = state_t.video_frames[0]
                     msg = state_t.observations[-1].text      # Get the detailed for the last observed state
                     oracle = json.loads(msg)                 # Parse the Oracle JSON
                     grid = oracle.get(u'grid', 0)
                     xpos = oracle.get(u'XPos', 0)            # Position in 2D plane, 1st axis
                     zpos = oracle.get(u'ZPos', 0)            # Position in 2D plane, 2nd axis (yes Z!)
-                    ypos = oracle.get(u'YPos', 0)
 
-            
-            prev_s = state_t
-            prev_a =  
+                # Update the Q table for the previous state and action
+                q_table[prev_s][prev_a] = q_table[prev_s][prev_a] + alpha*(prev_r + gamma*(max(q_table[curr_s][curr_a]) - q_table[prev_s][prev_a]))
 
 
+            # Update state, action and reward
+            prev_s = curr_s
+            prev_a = max(q_table[curr_s][curr_a])
+            #prev_r = curr_r # TODO: update state, action and rewards correctly
+
+            # Do pseudo random world exploration to populate q_table
+
+            # Create a reward table based on block types
             allowed_actions = []
-            for i in xrange(1,8,2):
-                if elem != -1 and i == 1:
-                    allowed_actions += "movesouth 1"
-                elif elem != -1 and i == 3:
-                    allowed_actions += "moveeast 1"
-                elif elem != -1 and i == 5:
-                    allowed_actions += "movewest 1"
-                elif elem != -1 and i == 7:
-                    allowed_actions += "movesouth 1"
+            for row in reward_matrix:
+                for reward in row:
+
+                    # If block is a corner, divide reward by two
+                    if reward_matrix.index(row) in [0,2] and row.index(reward) in [0,2]:
+                        q_table[(z_curr*10)+x_curr+1][reward_matrix.index(row)] = reward/2
+                    else:
+                        q_table[(z_curr * 10) + x_curr + 1][reward_matrix.index(row)] = reward
+                        if reward_matrix.index(row) == 1:
+                            if row.index(reward) == 0:
+                                allowed_actions += self.AGENT_ALLOWED_ACTIONS[2]
+                            else:
+                                allowed_actions += self.AGENT_ALLOWED_ACTIONS[1]
+                        else:
+                            allowed_actions += self.AGENT_ALLOWED_ACTIONS[reward_matrix.index(row)]
+
                    
-            print allowed_actions
-            ExecuteActionForRealisticAgentWithNoisyTransitionModel(random.choice(allowed_actions)
-            
+            print (allowed_actions)
+            prev_s = (z_curr*10)+x_curr+1       # State between 0 and 100 to map onto the q_table
+            prev_a = random.choice(allowed_actions)
+            self.ExecuteActionForRealisticAgentWithNoisyTransitionModel(prev_a)
 
             # Update q_table
-            x_curr = xpos
-            z_curr = zpos
-
-            x_old = x_curr
-            z_old = z_curr
 
 
 
