@@ -4,5 +4,6 @@ tmp.tgz
 *.lib
 *.pyd
 *.pyc
-.vs
+.idea/
+.vs/
 results/
