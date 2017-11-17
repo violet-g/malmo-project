@@ -123,7 +123,6 @@ if __name__ == "__main__":
 
             # If the agent is realistic pass the q_table
             if agent_name == "AgentRealistic":
-                print(q_table)
                 agent_to_be_evaluated.run_agent(q_table)
             else:
                 agent_to_be_evaluated.run_agent()

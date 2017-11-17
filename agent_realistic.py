@@ -95,6 +95,7 @@ class AgentRealistic:
         curr_s = (zpos*10)+xpos+1
         curr_a = None
         curr_r = 0
+        noise = 0 # TODO: change this
         print "Initial position: " + str(x_curr) + " " + str(z_curr)
 
         for i in range(len(grid)):
@@ -104,31 +105,26 @@ class AgentRealistic:
 
         #  Take the first action here
         # Create a reward table based on block types
-        allowed_actions = []
         for row in reward_matrix:
             for i in range(len(row)):
-                print i
                 if reward_matrix.index(row) == 0 and i == 1:
-                    q_table[(z_curr * 10) + x_curr + 1][reward_matrix.index(row)] = row[i]
-                    allowed_actions += [self.AGENT_ALLOWED_ACTIONS[reward_matrix.index(row)]] # movenorth
+                    q_table[(z_curr * 10) + x_curr + 1][reward_matrix.index(row)] = row[i] # movenorth
                 elif reward_matrix.index(row) == 1:
                     if i == 0:
                         q_table[(z_curr * 10) + x_curr + 1][2] = row[i] # movewest
-                        allowed_actions += [self.AGENT_ALLOWED_ACTIONS[2]]
                     elif i == 2:
-                        q_table[(z_curr * 10) + x_curr + 1][1] = row[i]
-                        allowed_actions += [self.AGENT_ALLOWED_ACTIONS[1]] # moveeast
+                        q_table[(z_curr * 10) + x_curr + 1][1] = row[i] # moveeast
                 elif reward_matrix.index(row) == 2 and i == 1:
-                    q_table[(z_curr * 10) + x_curr + 1][reward_matrix.index(row)] = row[i]
-                    allowed_actions += [self.AGENT_ALLOWED_ACTIONS[reward_matrix.index(row)]] # movesouth
+                    q_table[(z_curr * 10) + x_curr + 1][reward_matrix.index(row)] = row[i] # movesouth
 
-        print allowed_actions
+        action_index = np.argmax(q_table[(z_curr * 10) + x_curr + 1])
+
         print q_table
         prev_s = (z_curr * 10) + x_curr + 1  # State between 0 and 100 to map onto the q_table
-        prev_a = random.choice(allowed_actions)
+        prev_a = self.AGENT_ALLOWED_ACTIONS[action_index]
         x_old = x_curr
         z_old = z_curr
-        self.__ExecuteActionForRealisticAgentWithNoisyTransitionModel__(self.AGENT_ALLOWED_ACTIONS.index(prev_a), 0.1)
+        self.__ExecuteActionForRealisticAgentWithNoisyTransitionModel__(action_index, noise)
 
         #Main Loop
         while state_t.is_mission_running:
@@ -140,54 +136,63 @@ class AgentRealistic:
             if (prev_s is not None):
                 # Look at current frame
                 if state_t.number_of_video_frames_since_last_state > 0: # Have any Vision percepts been registred ?
-                    # frame = state_t.video_frames[0]
-                    # msg = state_t.observations[-1].text      # Get the detailed for the last observed state
+                    msg = state_t.observations[-1].text      # Get the detailed for the last observed state
                     oracle = json.loads(msg)                 # Parse the Oracle JSON
+
                     grid = oracle.get(u'grid', 0)
                     xpos = oracle.get(u'XPos', 0)            # Position in 2D plane, 1st axis
                     zpos = oracle.get(u'ZPos', 0)            # Position in 2D plane, 2nd axis (yes Z!)
 
-                # Update the Q table for the previous state and action
-                q_table[prev_s][prev_a] = q_table[prev_s][prev_a] + \
-                                          alpha*(prev_r + gamma*(max(q_table[curr_s][curr_a]) - q_table[prev_s][prev_a]))
+                x_curr = int(xpos)
+                z_curr = int(zpos)
+
+                # Update the Q table
+                old_q = q_table[prev_s][self.AGENT_ALLOWED_ACTIONS.index(prev_a)]
+                q_table[prev_s][self.AGENT_ALLOWED_ACTIONS.index(prev_a)] = \
+                    old_q + alpha*(prev_r + gamma*(max(q_table[curr_s][curr_a]) - old_q))
+
+                print q_table
 
                 # Take action based on current Q table
+                action_index = np.argmax(q_table[(z_curr * 10) + x_curr + 1])
 
-
+                self.__ExecuteActionForRealisticAgentWithNoisyTransitionModel__(action_index, noise)
 
             # Update state, action and reward
-            prev_s = curr_s
-            prev_a = max(q_table[curr_s][curr_a])
-            prev_r = curr_r
-            #  TODO: update state, action and rewards correctly
 
-            # Do pseudo random world exploration to populate q_table
 
-            # Create a reward table based on block types
-            allowed_actions = []
-            for row in reward_matrix:
-                for reward in row:
-
-                    # If block is a corner & the reward is positive , divide reward by two
-                    if reward_matrix.index(row) in [0,2] and row.index(reward) in [0,2] and reward > 0:
-                        q_table[(z_curr*10)+x_curr+1][reward_matrix.index(row)] = reward/2
-                    else:
-                        q_table[(z_curr * 10) + x_curr + 1][reward_matrix.index(row)] = reward
-                        if reward_matrix.index(row) == 1:
-                            if row.index(reward) == 0:
-                                allowed_actions += self.AGENT_ALLOWED_ACTIONS[2]
-                            else:
-                                allowed_actions += self.AGENT_ALLOWED_ACTIONS[1]
-                        else:
-                            allowed_actions += self.AGENT_ALLOWED_ACTIONS[reward_matrix.index(row)]
-
-                   
-            print (allowed_actions)
-            prev_s = (z_curr*10)+x_curr+1       # State between 0 and 100 to map onto the q_table
-            prev_a = random.choice(allowed_actions)
-            x_old = x_curr
-            z_old = z_curr
-            self.ExecuteActionForRealisticAgentWithNoisyTransitionModel(prev_a)
+            # prev_s = curr_s
+            # prev_a = max(q_table[curr_s][curr_a])
+            # prev_r = curr_r
+            # #  TODO: update state, action and rewards correctly
+            #
+            # # Do pseudo random world exploration to populate q_table
+            #
+            # # Create a reward table based on block types
+            # allowed_actions = []
+            # for row in reward_matrix:
+            #     for reward in row:
+            #
+            #         # If block is a corner & the reward is positive , divide reward by two
+            #         if reward_matrix.index(row) in [0,2] and row.index(reward) in [0,2] and reward > 0:
+            #             q_table[(z_curr*10)+x_curr+1][reward_matrix.index(row)] = reward/2
+            #         else:
+            #             q_table[(z_curr * 10) + x_curr + 1][reward_matrix.index(row)] = reward
+            #             if reward_matrix.index(row) == 1:
+            #                 if row.index(reward) == 0:
+            #                     allowed_actions += self.AGENT_ALLOWED_ACTIONS[2]
+            #                 else:
+            #                     allowed_actions += self.AGENT_ALLOWED_ACTIONS[1]
+            #             else:
+            #                 allowed_actions += self.AGENT_ALLOWED_ACTIONS[reward_matrix.index(row)]
+            #
+            #
+            # print (allowed_actions)
+            # prev_s = (z_curr*10)+x_curr+1       # State between 0 and 100 to map onto the q_table
+            # prev_a = random.choice(allowed_actions)
+            # x_old = x_curr
+            # z_old = z_curr
+            # self.ExecuteActionForRealisticAgentWithNoisyTransitionModel(prev_a)
 
 
             # Stop movement
