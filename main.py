@@ -103,6 +103,8 @@ if __name__ == "__main__":
 
         # Initialise q_table
         q_table = [[0] * 4 for i in range(100)]
+        # Initialise table of frequencies
+        Nsa = [[0]*4 for i in range(100)]
 
         #-- Repeat the same instance (size and seed) multiple times --#
         for i_rep in range(0,args.nrepeats):
@@ -123,7 +125,7 @@ if __name__ == "__main__":
 
             # If the agent is realistic pass the q_table
             if agent_name == "AgentRealistic":
-                agent_to_be_evaluated.run_agent(q_table)
+                agent_to_be_evaluated.run_agent(q_table, Nsa)
             else:
                 agent_to_be_evaluated.run_agent()
 

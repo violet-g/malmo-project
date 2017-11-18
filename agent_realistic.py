@@ -37,7 +37,16 @@ class AgentRealistic:
         self.agent_host.sendCommand(actual_action)
         return actual_action
 
-    def run_agent(self, q_table):
+    def f(self, u_idx, n, allowed_actions):
+        u""" Exploration function. Returns fixed Rplus untill
+        agent has visited state, action a Ne number of times.
+        Same as ADP agent in book."""
+        if n < 5:
+            return  random.choice(allowed_actions)
+        else:
+            return u_idx
+
+    def run_agent(self, q_table, Nsa):
         """ Run the Realistic agent and log the performance and resource use """
 
         # INSERT YOUR SOLUTION HERE (REWARDS MUST BE UPDATED IN THE solution_report)
@@ -104,6 +113,7 @@ class AgentRealistic:
 
         curr_s = (z_curr * 10) + x_curr + 1
         curr_r = state_t.number_of_rewards_since_last_state
+        reward_cumulative += curr_r
 
         for i in range(len(grid)):
             reward_matrix[(i-i%3)/3][i%3] = BLOCK_TYPES[str(grid[i])]
@@ -129,6 +139,7 @@ class AgentRealistic:
         print q_table
         curr_s = (z_curr * 10) + x_curr + 1  # State between 0 and 100 to map onto the q_table
         curr_a = self.__ExecuteActionForRealisticAgentWithNoisyTransitionModel__(curr_a_index, noise)
+        Nsa[(z_curr * 10) + x_curr + 1][curr_a_index] += 1
         time.sleep(0.5)
 
         x_old = x_curr
@@ -167,13 +178,41 @@ class AgentRealistic:
 
             old_q = q_table[prev_s][self.AGENT_ALLOWED_ACTIONS.index(prev_a)]
             q_table[prev_s][prev_a_index] = \
-                old_q + alpha*(prev_r + gamma*(max(q_table[curr_s]) - old_q))
+                old_q + alpha*(Nsa[prev_s][prev_a_index])*(prev_r + gamma*(max(q_table[curr_s]) - old_q))
 
-            curr_a_index = np.argmax(q_table[(z_curr * 10) + x_curr + 1])
+            #highest_util = max(q_table[(z_curr * 10) + x_curr + 1])
+            highest_util_index = np.argmax(q_table[(z_curr * 10) + x_curr + 1])
+
+            lowest_freq = min(Nsa[(z_curr * 10) + x_curr + 1])
+
+            allowed_actions = []
+            for row in reward_matrix:
+                for i in range(len(row)):
+                    if reward_matrix.index(row) == 0 and i == 1:
+                        if row[i] >= 0:
+                            allowed_actions += [0] # movenorth
+                    elif reward_matrix.index(row) == 1:
+                        if i == 0:
+                            if row[i] >= 0:
+                                allowed_actions += [2]  # movewest
+                        elif i == 2:
+                            if row[i] >= 0:
+                                allowed_actions += [1]   # moveeast
+                    elif reward_matrix.index(row) == 2 and i == 1:
+                        if row[i] >= 0:
+                            allowed_actions += [3]  # movesouth
+
+            curr_a_index = self.f(highest_util_index, lowest_freq, allowed_actions)
 
             print q_table
             curr_a = self.__ExecuteActionForRealisticAgentWithNoisyTransitionModel__(curr_a_index, noise)
+            Nsa[(z_curr * 10) + x_curr + 1][curr_a_index] += 1
             time.sleep(0.5)
+
+            curr_r = state_t.number_of_rewards_since_last_state
+            reward_cumulative += curr_r
+
+            print prev_a, prev_s, curr_a, curr_s, reward_cumulative
 
             x_old = x_curr
             z_old = z_curr
@@ -193,5 +232,4 @@ class AgentRealistic:
             #         actionIdx = random.randint(0, 2)
             #         # self.agent_host.sendCommand(discreteAction[actionIdx])
 
-            break
         return
