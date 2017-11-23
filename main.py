@@ -106,6 +106,9 @@ if __name__ == "__main__":
         # Initialise table of frequencies
         Nsa = [[0]*4 for i in range(100)]
 
+        Q = [[0] * 4 for i in range(100)] # 12x12 matrix
+        #R = [[0] * 144 for i in range(144)] # 12x12 matrix
+
         #-- Repeat the same instance (size and seed) multiple times --#
         for i_rep in range(0,args.nrepeats):
             print('Setup the performance log...')
@@ -125,7 +128,8 @@ if __name__ == "__main__":
 
             # If the agent is realistic pass the q_table
             if agent_name == "AgentRealistic":
-                agent_to_be_evaluated.run_agent(q_table, Nsa)
+                #agent_to_be_evaluated.run_agent(q_table, Nsa)
+                agent_to_be_evaluated.run_agent()
             else:
                 agent_to_be_evaluated.run_agent()
 
@@ -147,7 +151,7 @@ if __name__ == "__main__":
             else:
                 os.makedirs(os.path.dirname(fn_result))
                 foutput = open(fn_result+'.pkl', 'wb')
-            
+
             pickle.dump(agent_to_be_evaluated.solution_report,foutput) # Save the solution information in a specific file, HiNT:  It can be loaded with pickle.load(output) with read permissions to the file
             foutput.close()
 

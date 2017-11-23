@@ -1,0 +1,199 @@
+import time
+import random
+import json
+import numpy as np
+
+from agent_helper import AgentHelper
+from init_mission import init_mission
+
+import MalmoPython
+
+# This class implements the Realistic Agent --#
+class AgentRealistic:
+
+    def __init__(self,agent_host,agent_port, mission_type, mission_seed, solution_report, state_space_graph):
+        """ Constructor for the realistic agent """
+        self.AGENT_MOVEMENT_TYPE = 'Discrete' # HINT: You can change this if you want {Absolute, Discrete, Continuous}
+        self.AGENT_NAME = 'Realistic'
+        self.AGENT_ALLOWED_ACTIONS = ["movenorth 1", "movewest 1", "moveeast 1", "movesouth 1"]
+
+        self.agent_host = agent_host
+        self.agent_port = agent_port
+        self.mission_seed = mission_seed
+        self.mission_type = mission_type
+        self.state_space = None; # NOTE: The Realistic can not know anything about the state_space a priori !
+        self.solution_report = solution_report;   # Python is call by reference !
+        self.solution_report.setMissionType(self.mission_type)
+        self.solution_report.setMissionSeed(self.mission_seed)
+
+    def __ExecuteActionForRealisticAgentWithNoisyTransitionModel__(self, idx_requested_action, noise_level):
+        """ Creates a well-defined transition model with a certain noise level """
+        n = len(self.AGENT_ALLOWED_ACTIONS)
+        pp = noise_level/(n-1) * np.ones((n,1))
+        pp[idx_requested_action] = 1.0 - noise_level
+        idx_actual = np.random.choice(n, 1, p=pp.flatten()) # sample from the distribution of actions
+        actual_action = self.AGENT_ALLOWED_ACTIONS[int(idx_actual)]
+        print(actual_action)
+        self.agent_host.sendCommand(actual_action)
+        return actual_action
+
+    # def f(self, u_idx, n, allowed_actions):
+    #     u""" Exploration function. Returns fixed Rplus until
+    #     agent has visited state, action a Ne number of times.
+    #     Same as ADP agent in book."""
+    #     if n < 5:
+    #         return  random.choice(allowed_actions)
+    #     else:
+    #         return u_idx
+
+    def run_agent(self, q_table, Nsa):
+        """ Run the Realistic agent and log the performance and resource use """
+
+        # INSERT YOUR SOLUTION HERE (REWARDS MUST BE UPDATED IN THE solution_report)
+        #
+        # NOTICE: YOUR FINAL AGENT MUST MAKE USE OF THE FOLLOWING NOISY TRANSITION MODEL
+        #       ExecuteActionForRealisticAgentWithNoisyTransitionModel(idx_requested_action, 0.05)
+        #   FOR DEVELOPMENT IT IS RECOMMENDED TO FIST USE A NOISE FREE VERSION, i.e.
+        #       ExecuteActionForRealisticAgentWithNoisyTransitionModel(idx_requested_action, 0.0)
+
+        #-- Load and init mission --#
+        print('Generate and load the ' + self.mission_type + ' mission with seed ' + str(self.mission_seed) + ' allowing ' +  self.AGENT_MOVEMENT_TYPE + ' movements')
+        mission_xml = init_mission(self.agent_host, self.agent_port, self.AGENT_NAME, self.mission_type, self.mission_seed, self.AGENT_MOVEMENT_TYPE)
+        self.solution_report.setMissionXML(mission_xml)
+        time.sleep(2)
+        self.solution_report.start()
+
+        continuousMovement = False
+
+        self.agent_host.setObservationsPolicy(MalmoPython.ObservationsPolicy.LATEST_OBSERVATION_ONLY)
+        self.agent_host.setRewardsPolicy(MalmoPython.RewardsPolicy.SUM_REWARDS)
+        self.agent_host.setVideoPolicy(MalmoPython.VideoPolicy.LATEST_FRAME_ONLY)
+
+        BLOCK_TYPES = {"stone":-1000, "glowstone":0, "emerald_block":0, "stained_hardened_clay": -1000, "redstone_block": 1000}
+        HIGHEST_ALLOWED_FREQUENCY = 5
+        noise = 0.0 # noise level 0.0 during development (must change to 0.05 later)
+
+        reward_matrix = [0]*9
+        gamma = 1.0                                   # Greediness of the agent. Closer to 0 is greedier
+        alpha = 0.1                                   # Learning factor
+
+        curr_s = None
+        curr_a = None
+        prev_s = None
+        prev_a = None
+        curr_r = 0
+        prev_r = 0
+        curr_a_index = 0
+        prev_a_index = 0
+
+        # Goal:
+        # goal_t: The goal is obtained when the cumulative reward reaches 1000 (checked internally in the mission definition)
+        # Let's predefine the cumulative reward - note the goal test is (effectively) checked against this value
+        reward_cumulative = 0.0
+
+        state_t = self.agent_host.getWorldState()
+
+        #Main Loop
+        while state_t.is_mission_running:
+
+
+            if state_t.number_of_observations_since_last_state > 0:  # Has any Oracle-like and/or internal sensor observations come in?
+                msg = state_t.observations[-1].text  # Get the detailed for the last observed state
+                oracle = json.loads(msg)  # Parse the Oracle JSON
+
+                # Oracle
+                grid = oracle.get(u'grid', 0)
+
+                # GPS-like sensor
+                xpos = oracle.get(u'XPos', 0)  # Position in 2D plane, 1st axis
+                zpos = oracle.get(u'ZPos', 0)  # Position in 2D plane, 2nd axis (yes Z!)
+                ypos = oracle.get(u'YPos', 0)
+
+            x_curr = int(xpos)  # int rounds xpos down from 8.5 to 8
+            z_curr = int(zpos)
+            curr_s = (z_curr * 10) + x_curr
+            print "\nCurrent position: " + str(x_curr) + " " + str(z_curr)
+
+            for i in range(len(grid)):
+                reward_matrix[i] = BLOCK_TYPES[str(grid[i])]
+
+            print (reward_matrix)
+
+            if prev_s is not None:
+
+                old_q = q_table[prev_s][self.AGENT_ALLOWED_ACTIONS.index(prev_a)]
+                value = old_q + alpha*(Nsa[prev_s][prev_a_index])*(prev_r + gamma*(max(q_table[curr_s]) - old_q))
+                print value, old_q, Nsa[prev_s][prev_a_index], prev_r
+                q_table[prev_s][prev_a_index] = \
+                    round(old_q + alpha*(Nsa[prev_s][prev_a_index])*(prev_r + gamma*(max(q_table[curr_s]) - old_q)), 2)
+
+            highest_util = max(q_table[(z_curr * 10) + x_curr])
+            highest_util_index = np.argmax(q_table[(z_curr * 10) + x_curr])
+
+            lowest_freq = min(i for i in Nsa[(z_curr * 10) + x_curr] if i >= 0)
+            lowest_freq_index = np.argmin(Nsa[(z_curr * 10) + x_curr])
+
+            allowed_actions = []
+
+            for x in range(len(self.AGENT_ALLOWED_ACTIONS)):
+                if reward_matrix[(x*2)+1] == -1000:
+                    q_table[curr_s][x] = -1000
+                    Nsa[curr_s][x] = -1
+                elif Nsa[curr_s][x] == lowest_freq and lowest_freq < HIGHEST_ALLOWED_FREQUENCY:
+                    allowed_actions.append(x)
+                elif q_table[curr_s][x] == highest_util:
+                    allowed_actions.append(x)
+
+            curr_a_index = random.choice(allowed_actions)
+
+
+            # for row in reward_matrix:
+            #     for i in range(len(row)):
+            #         if reward_matrix.index(row) == 0 and i == 1:
+            #             if row[i] >= 0 and Nsa[(z_curr * 10) + x_curr][i] < 5: # not a wall
+            #                 allowed_actions += [0] # movenorth
+            #         elif reward_matrix.index(row) == 1:
+            #             if i == 0:
+            #                 if row[i] >= 0 and Nsa[(z_curr * 10) + x_curr][i] < 5:
+            #                     allowed_actions += [2]  # movewest
+            #             elif i == 2:
+            #                 if row[i] >= 0 and Nsa[(z_curr * 10) + x_curr][i] < 5:
+            #                     allowed_actions += [1]   # moveeast
+            #         elif reward_matrix.index(row) == 2 and i == 1:
+            #             if row[i] >= 0 and Nsa[(z_curr * 10) + x_curr][i] < 5:
+            #                 allowed_actions += [3]  # movesouth
+
+            # curr_a_index = self.f(highest_util_index, lowest_freq, allowed_actions)
+
+            print "Q table: ", str(q_table)
+            curr_a = self.__ExecuteActionForRealisticAgentWithNoisyTransitionModel__(curr_a_index, noise)
+            Nsa[(z_curr * 10) + x_curr][curr_a_index] += 1
+            time.sleep(0.2)
+            print "Freq table: ", str(Nsa)
+
+            curr_r = state_t.number_of_rewards_since_last_state
+            reward_cumulative += curr_r
+
+            print prev_a, prev_s, curr_a, curr_s, reward_cumulative
+
+            x_old = x_curr
+            z_old = z_curr
+            prev_s = curr_s
+            prev_a = curr_a
+            prev_r = curr_r
+            prev_a_index = curr_a_index
+
+            state_t = self.agent_host.getWorldState()
+            # Stop movement
+            # if state_t.is_mission_running:
+            #     # Enforce a simple discrete behavior by stopping any continuous movement in progress
+            #
+            #     if continuousMovement:
+            #         self.agent_host.sendCommand("move "  + str(0))
+            #         self.agent_host.sendCommand("pitch " + str(0))
+            #         self.agent_host.sendCommand("turn "  + str(0))
+            #     else:
+            #         actionIdx = random.randint(0, 2)
+            #         # self.agent_host.sendCommand(discreteAction[actionIdx])
+
+        return
