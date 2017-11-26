@@ -22,7 +22,7 @@ class AgentSimple:
 
     def __init__(self, agent_host, agent_port, mission_type, mission_seed, solution_report, state_space):
         """ Constructor for the simple agent """
-        self.AGENT_MOVEMENT_TYPE = 'Absolute' # HINT: You can change this if you want {Absolute, Discrete, Continuous}
+        self.AGENT_MOVEMENT_TYPE = 'Absolute'
         self.AGENT_NAME = 'Simple'
 
         self.agent_host = agent_host
@@ -30,7 +30,7 @@ class AgentSimple:
         self.mission_seed = mission_seed
         self.mission_type = mission_type
         self.state_space = state_space
-        self.solution_report = solution_report  # Python calls by reference !
+        self.solution_report = solution_report
         self.solution_report.setMissionType(self.mission_type)
         self.solution_report.setMissionSeed(self.mission_seed)
 
@@ -44,7 +44,6 @@ class AgentSimple:
         time.sleep(1)
         self.solution_report.start()
 
-        # INSERT: YOUR SOLUTION HERE (REMEMBER TO MANUALLY UPDATE THE solution_report DEPENDING ON YOUR SOLUTION)
         state_space = self.state_space
         agent_host = self.agent_host
 
@@ -116,7 +115,7 @@ class AgentSimple:
                     xz_new = maze_map.locations.get(target_node.state)
                     x_new = xz_new[0]
                     z_new = xz_new[1] - 0.25
-                else:          
+                else:
 
                     xz_new = maze_map.locations.get(target_node.state)
                     x_new = xz_new[0] + 0.5
@@ -124,7 +123,7 @@ class AgentSimple:
 
                 agent_host.sendCommand("tp " + str(x_new) + " " + str(217) + " " + str(z_new))
                 self.solution_report.addAction()
-                
+
             except RuntimeError as e:
                 print "Failed to send command:",e
                 pass

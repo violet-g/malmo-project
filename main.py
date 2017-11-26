@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     #-- Define default arguments, in case you run the module as a script --#
     DEFAULT_STUDENT_GUID = 'template'
-    DEFAULT_AGENT_NAME   = 'Realistic' #HINT: Currently choose between {Random,Simple, Realistic}
+    DEFAULT_AGENT_NAME   = 'Random' #HINT: Currently choose between {Random,Simple, Realistic}
     DEFAULT_MALMO_PATH   = os.environ['MALMO_ROOT'] # HINT: Change this to your own path
     DEFAULT_AIMA_PATH    = os.environ['AIMA_PATH']  # HINT: Change this to your own path, forward slash only, should be the 2.7 version from https://www.dropbox.com/s/vulnv2pkbv8q92u/aima-python_python_v27_r001.zip?dl=0) or for Python 3.x get it from https://github.com/aimacode/aima-python
     DEFAULT_MISSION_TYPE = 'small'  #HINT: Choose between {small,medium,large}
@@ -101,14 +101,6 @@ if __name__ == "__main__":
         else:
             helper_agent = None
 
-        # Initialise q_table
-        q_table = [[0] * 4 for i in range(100)]
-        # Initialise table of frequencies
-        Nsa = [[0]*4 for i in range(100)]
-
-        Q = [[0] * 4 for i in range(100)] # 12x12 matrix
-        #R = [[0] * 144 for i in range(144)] # 12x12 matrix
-
         #-- Repeat the same instance (size and seed) multiple times --#
         for i_rep in range(0,args.nrepeats):
             print('Setup the performance log...')
@@ -126,12 +118,7 @@ if __name__ == "__main__":
             print('Run the agent, time it and log the performance...')
             solution_report.start() # start the timer (may be overwritten in the agent to provide a fair comparison)
 
-            # If the agent is realistic pass the q_table
-            if agent_name == "AgentRealistic":
-                #agent_to_be_evaluated.run_agent(q_table, Nsa)
-                agent_to_be_evaluated.run_agent()
-            else:
-                agent_to_be_evaluated.run_agent()
+            agent_to_be_evaluated.run_agent()
 
             solution_report.stop() # stop the timer
 

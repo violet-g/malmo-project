@@ -8,7 +8,7 @@ import MalmoPython
 
 from init_mission import init_mission
 
-# This class implements a basic, suboptimal Random Agent. The purpurpose is to provide a baseline for other agent to beat. --#
+# This class implements a basic, suboptimal Random Agent. The purpose is to provide a baseline for other agent to beat. --#
 class AgentRandom:
 
     def __init__(self,agent_host,agent_port, mission_type, mission_seed, solution_report, state_space):
@@ -34,6 +34,7 @@ class AgentRandom:
         idx_actual = np.random.choice(n, 1, p=pp.flatten()) # sample from the distrbution of actions
         actual_action = self.AGENT_ALLOWED_ACTIONS[int(idx_actual)]
         self.agent_host.sendCommand(actual_action)
+        self.solution_report.addAction()
         return actual_action
 
     def run_agent(self):
@@ -49,18 +50,14 @@ class AgentRandom:
         self.agent_host.setVideoPolicy(MalmoPython.VideoPolicy.LATEST_FRAME_ONLY)
         self.agent_host.setRewardsPolicy(MalmoPython.RewardsPolicy.KEEP_ALL_REWARDS)
 
-        # Fix the randomness of the agent by seeding the random number generator
+        # Initialise cumulative reward
         reward_cumulative = 0.0
 
-        # Main loop:
         state_t = self.agent_host.getWorldState()
 
         while state_t.is_mission_running:
             # Wait 0.5 sec
             time.sleep(0.5)
-
-            # Get the world state
-            state_t = self.agent_host.getWorldState()
 
             if state_t.is_mission_running:
                 actionIdx = random.randint(0, 3)
@@ -76,7 +73,7 @@ class AgentRandom:
                 reward_cumulative += reward_t.getValue()
                 self.solution_report.addReward(reward_t.getValue(), datetime.datetime.now())
                 print("Reward_t:",reward_t.getValue())
-                print("Cummulative reward so far:",reward_cumulative)
+                print("Cumulative reward so far:",reward_cumulative)
 
             # Check if anything went wrong along the way
             for error in state_t.errors:
@@ -92,7 +89,7 @@ class AgentRandom:
                 msg = state_t.observations[-1].text      # Get the detailed for the last observed state
                 oracle = json.loads(msg)                 # Parse the Oracle JSON
 
-                # Orcale
+                # Oracle
                 grid = oracle.get(u'grid', 0)            #
 
                 # GPS-like sensor
@@ -111,6 +108,9 @@ class AgentRandom:
             #-- Print some of the state information --#
             print("Percept: video,observations,rewards received:",state_t.number_of_video_frames_since_last_state,state_t.number_of_observations_since_last_state,state_t.number_of_rewards_since_last_state)
             print("\tcoordinates (x,y,z,yaw,pitch):" + str(xpos) + " " + str(ypos) + " " + str(zpos)+ " " + str(yaw) + " " + str(pitch))
+
+            # Get the new world state
+            state_t = self.agent_host.getWorldState()
 
         # --------------------------------------------------------------------------------------------
         # Summary
