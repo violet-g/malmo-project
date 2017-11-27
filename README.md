@@ -1,5 +1,7 @@
 # malmo-project
 
+## How to run:
+command: python main.py -a [Random/Simple/Realistic] -n [num-of-executions]
 ## Dependencies
 
 To run this project you will need:
